@@ -168,15 +168,17 @@ function generateCpuTestSection(cpuTest: any, options: MarkdownOptions): string 
     section += `**单核性能得分：** ${cpuTest.singleCore.score} Scores\n\n`
     section += generateRatingCallout(cpuTest.singleCore.rating, '单核性能评级', options)
 
-    // 多核性能
-    // TODO: 单核的时候 此处省略
-    section += `**${cpuTest.multiCore.threads}线程性能得分：** ${cpuTest.multiCore.score} Scores\n\n`
-    section += generateRatingCallout(cpuTest.multiCore.rating, '多核性能评级', options)
+    // 多核性能 - 只有当多核测试有效时才显示
+    // 判断是否为有效的多核测试：线程数大于1且得分大于0
+    if (cpuTest.multiCore && cpuTest.multiCore.threads > 1 && cpuTest.multiCore.score > 0) {
+        section += `**${cpuTest.multiCore.threads}线程性能得分：** ${cpuTest.multiCore.score} Scores\n\n`
+        section += generateRatingCallout(cpuTest.multiCore.rating, '多核性能评级', options)
 
-    // 多核效率
-    if (cpuTest.multiCore.efficiency && cpuTest.multiCore.efficiencyRating) {
-        section += `**多核心效率：** ${cpuTest.multiCore.efficiency.toFixed(2)}\n\n`
-        section += generateRatingCallout(cpuTest.multiCore.efficiencyRating, '效率评级', options)
+        // 多核效率
+        if (cpuTest.multiCore.efficiency && cpuTest.multiCore.efficiencyRating) {
+            section += `**多核心效率：** ${cpuTest.multiCore.efficiency.toFixed(2)}\n\n`
+            section += generateRatingCallout(cpuTest.multiCore.efficiencyRating, '效率评级', options)
+        }
     }
 
     return section
