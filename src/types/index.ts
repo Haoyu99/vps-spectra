@@ -86,6 +86,8 @@ export interface DiskDdTest {
     readSpeed?: string
     writeIOPS?: string
     readIOPS?: string
+    writeTime?: string
+    readTime?: string
   }>
 }
 
@@ -106,12 +108,6 @@ export interface DiskFioTest {
       iops: number
     }
   }>
-  summary: {
-    avgReadSpeed: number
-    avgWriteSpeed: number
-    readRating: RatingResult
-    writeRating: RatingResult
-  }
 }
 
 // 流媒体解锁测试结果

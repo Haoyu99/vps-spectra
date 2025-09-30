@@ -19,8 +19,6 @@ import {
   evaluateCpuEfficiency,
   evaluateMemoryRead,
   evaluateMemoryWrite,
-  evaluateDiskRead,
-  evaluateDiskWrite,
   evaluateIpReputation,
   evaluateIpTrust,
   evaluateIpRiskScore,
@@ -325,7 +323,7 @@ function parseDiskDdTest(section: string, errors: ParseError[]): DiskDdTest {
         
         const operation = operationMatch[1].trim()
         
-        // 使用更灵活的正则表达式匹配速度和IOPS
+        // 使用更灵活的正则表达式匹配速度、IOPS和时间
         const speedMatches = line.match(/([0-9.]+\s*[GM]?B\/s\s*\([^)]+\))/g)
         
         if (speedMatches && speedMatches.length >= 2) {
@@ -335,15 +333,20 @@ function parseDiskDdTest(section: string, errors: ParseError[]): DiskDdTest {
           
           const writeSpeedMatch = writeInfo.match(/([0-9.]+\s*[GM]?B\/s)/)
           const writeIOPSMatch = writeInfo.match(/\(([0-9]+)\s*IOPS/)
+          const writeTimeMatch = writeInfo.match(/([0-9.]+s)\)/)
+          
           const readSpeedMatch = readInfo.match(/([0-9.]+\s*[GM]?B\/s)/)
           const readIOPSMatch = readInfo.match(/\(([0-9]+)\s*IOPS/)
+          const readTimeMatch = readInfo.match(/([0-9.]+s)\)/)
 
           tests.push({
             operation,
             writeSpeed: writeSpeedMatch ? writeSpeedMatch[1] : undefined,
             writeIOPS: writeIOPSMatch ? writeIOPSMatch[1] + ' IOPS' : undefined,
+            writeTime: writeTimeMatch ? writeTimeMatch[1] : undefined,
             readSpeed: readSpeedMatch ? readSpeedMatch[1] : undefined,
-            readIOPS: readIOPSMatch ? readIOPSMatch[1] + ' IOPS' : undefined
+            readIOPS: readIOPSMatch ? readIOPSMatch[1] + ' IOPS' : undefined,
+            readTime: readTimeMatch ? readTimeMatch[1] : undefined
           })
         }
       }
@@ -442,18 +445,8 @@ function parseDiskFioTest(section: string, errors: ParseError[]): DiskFioTest {
       }
     }
 
-    // 计算平均值
-    const avgReadSpeed = tests.length > 0 ? tests.reduce((sum, test) => sum + test.read.speed, 0) / tests.length : 0
-    const avgWriteSpeed = tests.length > 0 ? tests.reduce((sum, test) => sum + test.write.speed, 0) / tests.length : 0
-
     return {
-      tests,
-      summary: {
-        avgReadSpeed,
-        avgWriteSpeed,
-        readRating: evaluateDiskRead(avgReadSpeed),
-        writeRating: evaluateDiskWrite(avgWriteSpeed)
-      }
+      tests
     }
   } catch (error) {
     errors.push({
@@ -462,13 +455,7 @@ function parseDiskFioTest(section: string, errors: ParseError[]): DiskFioTest {
       suggestion: '请检查磁盘FIO测试数据格式'
     })
     return {
-      tests: [],
-      summary: {
-        avgReadSpeed: 0,
-        avgWriteSpeed: 0,
-        readRating: evaluateDiskRead(0),
-        writeRating: evaluateDiskWrite(0)
-      }
+      tests: []
     }
   }
 }

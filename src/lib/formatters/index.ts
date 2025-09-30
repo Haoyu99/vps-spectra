@@ -153,6 +153,18 @@ function generateHardwareTests(result: VpsTestResult, options: MarkdownOptions):
 
     // 磁盘测试
     section += '### 磁盘性能测试\n\n'
+    
+    // 添加磁盘测试指标说明
+    if (options.useObsidianCallouts) {
+        section += '> [!info] 磁盘性能指标说明\n'
+        section += '> **DD测试**：基础顺序读写测试，快速评估磁盘基本性能\n'
+        section += '> **FIO测试**：专业IO测试工具，更准确反映实际使用性能\n\n'
+    } else {
+        section += '**磁盘性能指标说明：**\n'
+        section += '- **DD测试**：基础顺序读写测试，快速评估磁盘基本性能\n'
+        section += '- **FIO测试**：专业IO测试工具，更准确反映实际使用性能\n\n'
+    }
+    
     section += generateDiskTestSection(result.diskDdTest, result.diskFioTest, options)
 
     return section
@@ -212,36 +224,68 @@ function generateDiskTestSection(diskDdTest: any, diskFioTest: any, options: Mar
 
     // DD测试
     section += '#### DD 读写测试\n\n'
-    section += '```\n'
-    for (const test of diskDdTest.tests) {
-        section += `${test.operation}\n`
-        if (test.writeSpeed && test.readSpeed) {
-            section += `写入: ${test.writeSpeed}${test.writeIOPS ? ` (${test.writeIOPS})` : ''}\n`
-            section += `读取: ${test.readSpeed}${test.readIOPS ? ` (${test.readIOPS})` : ''}\n`
+    
+    if (diskDdTest.tests.length > 0) {
+        section += '| 测试项目 | 操作 | 速度 | IOPS | 耗时 |\n'
+        section += '| --- | --- | --- | --- | --- |\n'
+        
+        for (const test of diskDdTest.tests) {
+            if (test.writeSpeed && test.readSpeed) {
+                // 写入行
+                section += `| ${test.operation} | 写入 | ${test.writeSpeed} | ${test.writeIOPS || 'N/A'} | ${test.writeTime || 'N/A'} |\n`
+                // 读取行
+                section += `| ${test.operation} | 读取 | ${test.readSpeed} | ${test.readIOPS || 'N/A'} | ${test.readTime || 'N/A'} |\n`
+            }
         }
         section += '\n'
     }
-    section += '```\n\n'
 
     // FIO测试
     section += '#### FIO 读写测试\n\n'
     if (diskFioTest.tests.length > 0) {
-        section += '```\n'
-        section += 'Block Size | Read (IOPS) | Write (IOPS) | Total (IOPS)\n'
-        section += '---------- | ----------- | ------------ | ------------\n'
+        // 改为表格格式显示
+        section += '| 块大小 | 读取速度 | 读取IOPS | 写入速度 | 写入IOPS | 总速度 | 总IOPS |\n'
+        section += '| --- | --- | --- | --- | --- | --- | --- |\n'
+        
         for (const test of diskFioTest.tests) {
-            section += `${test.blockSize} | ${test.read.speed.toFixed(2)} MB/s (${test.read.iops.toFixed(0)}) | `
-            section += `${test.write.speed.toFixed(2)} MB/s (${test.write.iops.toFixed(0)}) | `
-            section += `${test.total.speed.toFixed(2)} MB/s (${test.total.iops.toFixed(0)})\n`
+            section += `| ${test.blockSize} | ${test.read.speed.toFixed(2)} MB/s | ${test.read.iops.toFixed(0)} | `
+            section += `${test.write.speed.toFixed(2)} MB/s | ${test.write.iops.toFixed(0)} | `
+            section += `${test.total.speed.toFixed(2)} MB/s | ${test.total.iops.toFixed(0)} |\n`
         }
-        section += '```\n\n'
+        section += '\n'
 
-        // FIO测试总结
-        section += '**FIO 测试总结**\n\n'
-        section += '| 操作类型 | 平均速度 | 评级 |\n'
-        section += '| --- | --- | --- |\n'
-        section += `| 读取 | ${diskFioTest.summary.avgReadSpeed.toFixed(2)} MB/s | ${diskFioTest.summary.readRating.emoji} ${diskFioTest.summary.readRating.description} |\n`
-        section += `| 写入 | ${diskFioTest.summary.avgWriteSpeed.toFixed(2)} MB/s | ${diskFioTest.summary.writeRating.emoji} ${diskFioTest.summary.writeRating.description} |\n\n`
+        // 性能分析和评级
+        const test4k = diskFioTest.tests.find((t: any) => t.blockSize === '4k')
+        const test1m = diskFioTest.tests.find((t: any) => t.blockSize === '1m')
+        
+        if (test4k) {
+            const avg4kSpeed = (test4k.read.speed + test4k.write.speed) / 2
+            const diskEvaluation = evaluateDiskPerformance(avg4kSpeed)
+            
+            section += '#### 磁盘性能分析 \n\n'
+            section += `**磁盘类型判断：** ${diskEvaluation.type}\n\n`
+            section += generateRatingCallout(diskEvaluation.rating, '4K性能评级', options)
+            
+            // 超售检测
+            if (test1m) {
+                const overselling = evaluateOverselling(test1m.total.speed, diskEvaluation.type)
+                const calloutType = overselling.hasOverselling ? 'warning' : 'success'
+                
+                if (options.useObsidianCallouts) {
+                    section += `> [!${calloutType}] 资源超售检测\n`
+                    section += `> ${overselling.message}\n\n`
+                } else {
+                    section += `**资源超售检测：** ${overselling.message}\n\n`
+                }
+            }
+            
+            if (options.useObsidianCallouts) {
+                section += '> [!note] 注意\n'
+                section += '> 以上分析基于测试数据的统计规律，仅供参考。实际磁盘性能受多种因素影响（文件系统、IO引擎、系统负载等），请结合实际使用场景进行综合评估。\n\n'
+            } else {
+                section += '**注意：** 以上分析基于测试数据的统计规律，仅供参考。实际磁盘性能受多种因素影响（文件系统、IO引擎、系统负载等），请结合实际使用场景进行综合评估。\n\n'
+            }
+        }
     }
 
     return section
@@ -435,10 +479,10 @@ function generateFooter(result: VpsTestResult, options: MarkdownOptions): string
 
     if (options.useObsidianCallouts) {
         footer += `> [!note] 报告生成信息\n`
-        footer += `> 本报告由 [VPS-Spectra](https://github.com/vps-spectra/vps-spectra) 自动生成\n`
+        footer += `> 本报告由 [VPS-Spectra](https://github.com/Haoyu99/vps-spectra) 自动生成\n`
         footer += `> 生成时间：${new Date().toLocaleString('zh-CN')}\n\n`
     } else {
-        footer += `*本报告由 [VPS-Spectra](https://github.com/vps-spectra/vps-spectra) 自动生成*\n`
+        footer += `*本报告由 [VPS-Spectra](https://github.com/Haoyu99/vps-spectra) 自动生成*\n`
         footer += `*生成时间：${new Date().toLocaleString('zh-CN')}*\n\n`
     }
 
@@ -512,4 +556,78 @@ function getAverageRating(ratings: RatingResult[]): RatingResult {
         color: '#666',
         emoji: '📊'
     }
+}
+
+/**
+ * 根据4K性能评估磁盘类型和评级
+ */
+function evaluateDiskPerformance(speed4k: number): { type: string, rating: RatingResult } {
+    let type: string
+    let level: 'excellent' | 'good' | 'average' | 'poor'
+    let description: string
+    let emoji: string
+
+    if (speed4k >= 200) {
+        type = 'NVMe SSD'
+        level = 'excellent'
+        description = '优秀 (NVMe SSD)'
+        emoji = '🚀'
+    } else if (speed4k >= 50) {
+        type = '标准SSD'
+        level = 'good'
+        description = '良好 (标准SSD)'
+        emoji = '✅'
+    } else if (speed4k >= 10) {
+        type = 'HDD (机械硬盘)'
+        level = 'average'
+        description = '一般 (机械硬盘)'
+        emoji = '⚠️'
+    } else {
+        type = '性能不佳'
+        level = 'poor'
+        description = '较差 (性能受限)'
+        emoji = '❌'
+    }
+
+    return {
+        type,
+        rating: {
+            level,
+            description,
+            color: level === 'excellent' ? '#22c55e' : level === 'good' ? '#3b82f6' : level === 'average' ? '#f59e0b' : '#ef4444',
+            emoji
+        }
+    }
+}
+
+/**
+ * 根据1M性能评估是否存在超售
+ */
+function evaluateOverselling(speed1m: number, diskType: string): { hasOverselling: boolean, message: string } {
+    let threshold: number
+    
+    if (diskType === 'NVMe SSD') {
+        threshold = 1000 // 1GB/s
+    } else if (diskType === '标准SSD') {
+        threshold = 500 // 500MB/s
+    } else {
+        threshold = 200 // 200MB/s for HDD
+    }
+
+    const hasOverselling = speed1m < threshold
+    let message: string
+
+    if (hasOverselling) {
+        if (diskType === 'NVMe SSD') {
+            message = '检测到严重的资源超开超售，1M性能远低于NVMe SSD应有水平'
+        } else if (diskType === '标准SSD') {
+            message = '可能存在资源限制，1M性能低于标准SSD正常水平'
+        } else {
+            message = '磁盘性能受限，可能存在IO限制或超售情况'
+        }
+    } else {
+        message = '磁盘性能表现正常，未发现明显的资源超售问题'
+    }
+
+    return { hasOverselling, message }
 }

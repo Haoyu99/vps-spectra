@@ -117,35 +117,7 @@ export function evaluateMemoryWrite(speed: number): RatingResult {
   }
 }
 
-/**
- * 磁盘FIO读取性能评级
- */
-export function evaluateDiskRead(speed: number): RatingResult {
-  if (speed > 100) {
-    return createRating('excellent', '优秀', speed)
-  } else if (speed > 80) {
-    return createRating('good', '良好', speed)
-  } else if (speed > 50) {
-    return createRating('average', '一般', speed)
-  } else {
-    return createRating('poor', '较弱', speed)
-  }
-}
 
-/**
- * 磁盘FIO写入性能评级
- */
-export function evaluateDiskWrite(speed: number): RatingResult {
-  if (speed > 100) {
-    return createRating('excellent', '优秀', speed)
-  } else if (speed > 80) {
-    return createRating('good', '良好', speed)
-  } else if (speed > 50) {
-    return createRating('average', '一般', speed)
-  } else {
-    return createRating('poor', '较弱', speed)
-  }
-}
 
 /**
  * IP质量评级 - 声誉分数 (越高越好)
