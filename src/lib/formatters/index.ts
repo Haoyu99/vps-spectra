@@ -1,5 +1,4 @@
-import {formatNetworkReturnAsMarkdownTable} from '@/lib/parsers/networkReturnParser'
-import type {VpsTestResult, MarkdownOptions, RatingResult, IpQualityTest, DatabaseSource} from '@/types'
+import type {VpsTestResult, MarkdownOptions, RatingResult, IpQualityTest, DatabaseSource, NetworkReturnTest, RouteTest} from '@/types'
 
 /**
  * 将VPS测试结果格式化为Markdown
@@ -689,53 +688,195 @@ function generateEmailPortSection(emailPortTest: any, options: MarkdownOptions):
 /**
  * 生成三网回程部分
  */
-function generateNetworkReturnSection(networkReturnTest: any, options: MarkdownOptions): string {
-
-
+function generateNetworkReturnSection(networkReturnTest: NetworkReturnTest, options: MarkdownOptions): string {
     let section = ''
 
+    // 添加说明信息
+    if (options.useObsidianCallouts) {
+        section += '> [!info] 三网回程说明\n'
+        section += '> 检测当前服务器到国内三大运营商的网络回程路由情况\n'
+        section += '> **线路质量：** CN2GIA > CN2GT > 163骨干网 > 普通线路\n'
+        section += '> **检测目标：** 默认检测到广州的回程路由\n\n'
+    } else {
+        section += '**三网回程说明：**\n'
+        section += '- 检测当前服务器到国内三大运营商的网络回程路由情况\n'
+        section += '- **线路质量：** CN2GIA > CN2GT > 163骨干网 > 普通线路\n'
+        section += '- **检测目标：** 默认检测到广州的回程路由\n\n'
+    }
+
+    // 统一表格显示三网回程信息
+    section += '### 📊 三网回程路由汇总\n\n'
+    section += '| 运营商 | 目标地址 | IP地址 | 线路类型 | 线路质量 |\n'
+    section += '| --- | --- | --- | --- | --- |\n'
+
+    // 解析并显示电信回程
     if (networkReturnTest.telecom.length > 0) {
-        section += '【电信回程】\n'
         for (const entry of networkReturnTest.telecom) {
-            section += `${entry}\n`
+            const parsed = parseNetworkReturnLine(entry)
+            const quality = evaluateLineQuality(parsed.info)
+            section += `| 电信 | ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
         }
-        section += '\n'
     }
 
+    // 解析并显示联通回程
     if (networkReturnTest.unicom.length > 0) {
-        section += '【联通回程】\n'
         for (const entry of networkReturnTest.unicom) {
-            section += `${entry}\n`
+            const parsed = parseNetworkReturnLine(entry)
+            const quality = evaluateLineQuality(parsed.info)
+            section += `| 联通 | ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
+        }
+    }
+
+    // 解析并显示移动回程
+    if (networkReturnTest.mobile.length > 0) {
+        for (const entry of networkReturnTest.mobile) {
+            const parsed = parseNetworkReturnLine(entry)
+            const quality = evaluateLineQuality(parsed.info)
+            section += `| 移动 | ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
+        }
+    }
+
+    section += '\n'
+    return section
+}
+
+/**
+ * 解析单条回程线路信息
+ */
+function parseNetworkReturnLine(line: string): { target: string; ip: string; info: string } {
+    // 匹配线路信息的正则表达式
+    // 格式示例: 北京电信v4 219.141.140.10           电信163    [普通线路]
+    const regex = /^(\S+?)\s+((?:\d{1,3}\.){3}\d{1,3}(?:\s*\S*:\S*)?)\s*(.*)$/
+    const match = line.match(regex)
+    
+    if (match) {
+        return {
+            target: match[1],
+            ip: match[2].trim(),
+            info: match[3].trim()
+        }
+    }
+    
+    // 处理IPv6地址的情况
+    const ipv6Regex = /^(\S+?)\s+([0-9a-fA-F:]+(?:\s*\S*:\S*)?)\s*(.*)$/
+    const ipv6Match = line.match(ipv6Regex)
+    
+    if (ipv6Match) {
+        return {
+            target: ipv6Match[1],
+            ip: ipv6Match[2].trim(),
+            info: ipv6Match[3].trim()
+        }
+    }
+    
+    // 如果无法解析，返回原始信息
+    return {
+        target: line,
+        ip: '',
+        info: ''
+    }
+}
+
+/**
+ * 评估线路质量
+ */
+function evaluateLineQuality(lineInfo: string): string {
+    const lowerInfo = lineInfo.toLowerCase()
+    
+    if (lowerInfo.includes('cn2gia') || lowerInfo.includes('cn2 gia')) {
+        return '🚀 优质 (CN2GIA)'
+    } else if (lowerInfo.includes('cn2gt') || lowerInfo.includes('cn2 gt')) {
+        return '✅ 良好 (CN2GT)'
+    } else if (lowerInfo.includes('cmin2')) {
+        return '✅ 良好 (CMIN2)'
+    } else if (lowerInfo.includes('9929')) {
+        return '✅ 良好 (联通9929)'
+    } else if (lowerInfo.includes('163')) {
+        return '⚠️ 一般 (163骨干网)'
+    } else if (lowerInfo.includes('4837')) {
+        return '⚠️ 一般 (联通4837)'
+    } else if (lowerInfo.includes('cmi')) {
+        return '⚠️ 一般 (移动CMI)'
+    } else if (lowerInfo.includes('普通') || lowerInfo.includes('一般')) {
+        return '📋 普通线路'
+    } else if (lowerInfo.includes('优质') || lowerInfo.includes('premium')) {
+        return '🚀 优质线路'
+    } else {
+        return '📋 未知线路'
+    }
+}
+
+/**
+ * 生成回程路由部分
+ */
+function generateRouteSection(routeTest: RouteTest, options: MarkdownOptions): string {
+    let section = ''
+
+    // 添加说明信息
+    if (options.useObsidianCallouts) {
+        section += '> [!info] 回程路由说明\n'
+        section += '> 基于 nexttrace 工具检测到国内三大运营商的详细路由路径\n'
+        section += '> **延迟含义：** 每行显示的是从源点到该跳点的累计延迟时间\n'
+        section += '> **关键指标：** 最终延迟（到达目标总时间）、跳数、关键网络节点\n\n'
+    } else {
+        section += '**回程路由说明：**\n'
+        section += '- 基于 nexttrace 工具检测到国内三大运营商的详细路由路径\n'
+        section += '- **延迟含义：** 每行显示的是从源点到该跳点的累计延迟时间\n'
+        section += '- **关键指标：** 最终延迟（到达目标总时间）、跳数、关键网络节点\n\n'
+    }
+
+    // 路由摘要表格
+    if (routeTest.routes.length > 0) {
+        section += '### 📊 路由摘要\n\n'
+        section += '| 目标 | 目标IP | 总跳数 | 最终延迟 | 路由质量 | 关键节点 |\n'
+        section += '| --- | --- | --- | --- | --- | --- |\n'
+        
+        for (const route of routeTest.routes) {
+            const qualityIcon = getRouteQualityIcon(route.summary.routeQuality)
+            const keyNodes = route.summary.keyNodes.join(', ') || '无关键节点'
+            const chinaFlag = route.summary.hasChineseNodes ? ' 🇨🇳' : ''
+            section += `| ${route.destination} | ${route.targetIp} | ${route.summary.totalHops} | ${route.summary.finalLatency.toFixed(2)}ms${chinaFlag} | ${qualityIcon} | ${keyNodes} |\n`
         }
         section += '\n'
     }
 
-    if (networkReturnTest.mobile.length > 0) {
-        section += '【移动回程】\n'
-        for (const entry of networkReturnTest.mobile) {
-            section += `${entry}\n`
+    // 详细路由信息
+    for (const route of routeTest.routes) {
+        section += `### 🛣️ ${route.destination} 详细路由\n\n`
+        section += `**目标IP：** ${route.targetIp}\n\n`
+        
+        section += '| 跳数 | 延迟 | ASN | 位置 | 服务商 | 备注 |\n'
+        section += '| --- | --- | --- | --- | --- | --- |\n'
+        
+        for (const hop of route.hops) {
+            const asnInfo = hop.asn ? `${hop.asn}${hop.asnName ? ` [${hop.asnName}]` : ''}` : '-'
+            const provider = hop.provider || '-'
+            const note = hop.isPrivate ? '🔒 私有地址' : (hop.asnName?.includes('电信') ? '📡' : hop.asnName?.includes('联通') ? '📶' : hop.asnName?.includes('移动') ? '📱' : '')
+            
+            section += `| ${hop.hopNumber} | ${hop.latency} | ${asnInfo} | ${hop.location} | ${provider} | ${note} |\n`
         }
+        section += '\n'
     }
 
     return section
 }
 
 /**
- * 生成回程路由部分
+ * 获取路由质量图标
  */
-function generateRouteSection(routeTest: any, options: MarkdownOptions): string {
-    let section = '```\n'
-
-    for (const route of routeTest.routes) {
-        section += `${route.destination}\n`
-        for (const hop of route.hops) {
-            section += `${hop}\n`
-        }
-        section += '\n'
+function getRouteQualityIcon(quality: 'excellent' | 'good' | 'average' | 'poor'): string {
+    switch (quality) {
+        case 'excellent':
+            return '🚀 优秀'
+        case 'good':
+            return '✅ 良好'
+        case 'average':
+            return '⚠️ 一般'
+        case 'poor':
+            return '❌ 较差'
+        default:
+            return '📋 未知'
     }
-
-    section += '```\n\n'
-    return section
 }
 
 /**
@@ -745,11 +886,11 @@ function generateSpeedTests(speedTest: any, options: MarkdownOptions): string {
     let section = '## ⚡ 速度测试\n\n'
 
     if (speedTest.nodes.length > 0) {
-        section += '| 位置 | 上传速度 | 下载速度 | 延迟 | 丢包率 |\n'
-        section += '| --- | --- | --- | --- | --- |\n'
+        section += '| 位置 | 上传速度 | 下载速度 | 延迟 |\n'
+        section += '| --- | --- | --- | --- |\n'
 
         for (const node of speedTest.nodes) {
-            section += `| ${node.location} | ${node.uploadSpeed} | ${node.downloadSpeed} | ${node.latency} | ${node.packetLoss} |\n`
+            section += `| ${node.location} | ${node.uploadSpeed} | ${node.downloadSpeed} | ${node.latency} |\n`
         }
         section += '\n'
     }

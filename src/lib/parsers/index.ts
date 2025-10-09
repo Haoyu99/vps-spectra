@@ -11,6 +11,7 @@ import type {
   EmailPortTest,
   NetworkReturnTest,
   RouteTest,
+  RouteHop,
   SpeedTest,
   DatabaseSource,
   IpQualityMetric,
@@ -922,7 +923,9 @@ function parseRouteTest(section: string, errors: ParseError[]): RouteTest {
     const routeLines = routeStartIndex !== -1 ? lines.slice(routeStartIndex) : []
 
     let currentDestination = ''
-    let currentHops: string[] = []
+    let currentTargetIp = ''
+    let currentHops: RouteHop[] = []
+    let hopNumber = 0
 
     for (const line of routeLines) {
       // 跳过标题行和说明行
@@ -932,33 +935,48 @@ function parseRouteTest(section: string, errors: ParseError[]): RouteTest {
         continue
       }
 
-      // 检测目标地址行 - 更精确的匹配
-      if ((line.includes("电信") || line.includes("联通") || line.includes("移动")) && 
-          line.match(/\d+\.\d+\.\d+\.\d+/)) {
+      // 检测目标地址行 - 格式：广州电信 58.60.188.222
+      const targetMatch = line.match(/^(.*?[电信联通移动].*?)\s+(\d+\.\d+\.\d+\.\d+)$/)
+      if (targetMatch) {
         // 保存前一个路由
         if (currentDestination && currentHops.length > 0) {
+          const summary = generateRouteSummary(currentHops)
           routes.push({
             destination: currentDestination,
-            hops: [...currentHops]
+            targetIp: currentTargetIp,
+            hops: currentHops,
+            summary
           })
         }
-        
+
         // 开始新的路由
-        currentDestination = line.trim()
+        currentDestination = targetMatch[1].trim()
+        currentTargetIp = targetMatch[2].trim()
         currentHops = []
-      } else if (currentDestination && line.trim()) {
-        // 添加跳数信息 - 只添加包含延迟信息的行
-        if (line.match(/\d+\.\d+\s*ms/) || line.includes('AS')) {
-          currentHops.push(line.trim())
-        }
+        hopNumber = 0
+        continue
+      }
+
+      // 解析路由跳点行 - 格式：0.27 ms AS215304 日本 东京都 东京 lain.sh
+      const hopMatch = line.match(/^(\d+\.\d+)\s*ms\s+(.*)$/)
+      if (hopMatch) {
+        hopNumber++
+        const latency = hopMatch[1] + ' ms'
+        const hopInfo = hopMatch[2].trim()
+        
+        const hop = parseRouteHop(hopNumber, latency, hopInfo, line)
+        currentHops.push(hop)
       }
     }
 
-    // 添加最后一个路由
+    // 处理最后一个路由
     if (currentDestination && currentHops.length > 0) {
+      const summary = generateRouteSummary(currentHops)
       routes.push({
         destination: currentDestination,
-        hops: currentHops
+        targetIp: currentTargetIp,
+        hops: currentHops,
+        summary
       })
     }
 
@@ -970,6 +988,121 @@ function parseRouteTest(section: string, errors: ParseError[]): RouteTest {
       suggestion: '请检查回程路由测试数据格式'
     })
     return { routes: [] }
+  }
+}
+
+/**
+ * 解析单个路由跳点
+ */
+function parseRouteHop(hopNumber: number, latency: string, hopInfo: string, rawLine: string): RouteHop {
+  // 检查是否为私有地址
+  const isPrivate = hopInfo.includes('RFC1918') || hopInfo.includes('RFC6598') || hopInfo.startsWith('*')
+  
+  // 解析ASN信息
+  const asnMatch = hopInfo.match(/AS(\d+)/)
+  const asn = asnMatch ? `AS${asnMatch[1]}` : undefined
+  
+  // 解析ASN名称（方括号中的内容）
+  const asnNameMatch = hopInfo.match(/\[([^\]]+)\]/)
+  const asnName = asnNameMatch ? asnNameMatch[1] : undefined
+  
+  // 解析地理位置
+  let location = ''
+  if (isPrivate) {
+    location = '私有地址'
+  } else {
+    // 提取地理位置信息
+    const locationParts: string[] = []
+    const parts = hopInfo.split(/\s+/)
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      // 跳过ASN、方括号内容和域名
+      if (part.startsWith('AS') || part.includes('[') || part.includes('.')) {
+        continue
+      }
+      // 收集地理位置信息
+      if (part.match(/^[^\d\[\]]+$/)) {
+        locationParts.push(part)
+      }
+    }
+    location = locationParts.join(' ')
+  }
+  
+  // 解析服务提供商
+  const providerMatch = hopInfo.match(/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+  const provider = providerMatch ? providerMatch[1] : undefined
+  
+  return {
+    hopNumber,
+    latency,
+    asn,
+    asnName,
+    location: location || '未知',
+    provider,
+    isPrivate,
+    rawLine
+  }
+}
+
+/**
+ * 生成路由摘要信息
+ */
+function generateRouteSummary(hops: RouteHop[]): {
+  totalHops: number
+  finalLatency: number
+  keyNodes: string[]
+  routeQuality: 'excellent' | 'good' | 'average' | 'poor'
+  hasChineseNodes: boolean
+} {
+  const totalHops = hops.length
+  
+  // 获取最终延迟（最后一跳的延迟，即到达目标的总延迟）
+  const finalLatency = hops.length > 0 ? 
+    parseFloat(hops[hops.length - 1].latency.replace(' ms', '')) || 0 : 0
+  
+  // 提取关键节点（重要的ASN节点）
+  const keyNodes: string[] = []
+  let hasChineseNodes = false
+  
+  for (const hop of hops) {
+    if (hop.asnName && !hop.isPrivate) {
+      // 检查是否有中国节点
+      if (hop.location.includes('中国')) {
+        hasChineseNodes = true
+      }
+      
+      // 只收集重要的网络节点
+      if (hop.asnName.includes('CHINANET') || 
+          hop.asnName.includes('UNICOM') || 
+          hop.asnName.includes('CMNET') ||
+          hop.asnName.includes('CMI') ||
+          hop.asnName.includes('CN2') ||
+          hop.asnName.includes('CMIN2')) {
+        keyNodes.push(`${hop.asnName} (${hop.location})`)
+      }
+    }
+  }
+  
+  // 评估路由质量（基于最终延迟和跳数）
+  let routeQuality: 'excellent' | 'good' | 'average' | 'poor' = 'average'
+  
+  if (finalLatency < 100 && totalHops < 10) {
+    routeQuality = 'excellent'
+  } else if (finalLatency < 200 && totalHops < 15) {
+    routeQuality = 'good'
+  } else if (finalLatency < 300 && totalHops < 20) {
+    routeQuality = 'average'
+  } else {
+    routeQuality = 'poor'
+  }
+  
+  return {
+    totalHops,
+    finalLatency,
+    keyNodes: keyNodes.slice(0, 3), // 只显示前3个关键节点
+    routeQuality,
+    hasChineseNodes
   }
 }
 
@@ -994,14 +1127,13 @@ function parseSpeedTest(section: string, errors: ParseError[]): SpeedTest {
         if (line.startsWith("-----") || line === "") continue
         
         // 使用正则表达式匹配测速数据
-        const speedMatch = line.match(/^(.+?)\s+([0-9.]+Mbps)\s+([0-9.]+Mbps)\s+([0-9.]+ms)\s*([0-9.]+%|NULL)?/)
+        const speedMatch = line.match(/^(.+?)\s+([0-9.]+Mbps)\s+([0-9.]+Mbps)\s+([0-9.]+ms)/)
         if (speedMatch) {
           nodes.push({
             location: speedMatch[1].trim(),
             uploadSpeed: speedMatch[2],
             downloadSpeed: speedMatch[3],
-            latency: speedMatch[4],
-            packetLoss: speedMatch[5] || "-"
+            latency: speedMatch[4]
           })
         }
       }

@@ -234,11 +234,31 @@ export interface NetworkReturnTest {
   mobile: string[]
 }
 
+// 路由跳点信息
+export interface RouteHop {
+  hopNumber: number
+  latency: string
+  asn?: string
+  asnName?: string
+  location: string
+  provider?: string
+  isPrivate: boolean
+  rawLine: string
+}
+
 // 回程路由测试结果
 export interface RouteTest {
   routes: Array<{
     destination: string
-    hops: string[]
+    targetIp: string
+    hops: RouteHop[]
+    summary: {
+      totalHops: number
+      finalLatency: number  // 最终延迟（到达目标的总延迟）
+      keyNodes: string[]
+      routeQuality: 'excellent' | 'good' | 'average' | 'poor'
+      hasChineseNodes: boolean  // 是否经过中国节点
+    }
   }>
 }
 
@@ -249,7 +269,6 @@ export interface SpeedTest {
     uploadSpeed: string
     downloadSpeed: string
     latency: string
-    packetLoss: string
   }>
 }
 
