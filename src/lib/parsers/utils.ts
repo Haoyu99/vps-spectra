@@ -33,12 +33,47 @@ export function extractSection(text: string, startMarker: string, endMarker: str
  */
 export function parseMetadata(input: string) {
   try {
-    const timeMatch = input.match(/时间\s*[:：]\s*(.+)/)
-    const durationMatch = input.match(/总共花费\s*[:：]\s*(.+)/)
+    // 解析版本信息
     const versionMatch = input.match(/VPS融合怪版本[：:]\s*(.+)/)
+    
+    // 解析测试耗时 - 在结尾部分查找
+    const durationMatch = input.match(/总共花费\s*[:：]\s*(.+)/)
+    
+    // 解析测试时间 - 固定在总共花费的下一行，避免与系统在线时间混淆
+    let testTime = '未知'
+    if (durationMatch) {
+      // 找到总共花费这一行的位置
+      const durationLineIndex = input.indexOf(durationMatch[0])
+      if (durationLineIndex !== -1) {
+        // 从总共花费行开始，查找下一行的时间信息
+        const remainingText = input.substring(durationLineIndex)
+        const lines = remainingText.split('\n')
+        
+        // 在接下来的几行中查找时间格式
+        for (let i = 1; i < Math.min(lines.length, 5); i++) {
+          const line = lines[i].trim()
+          // 匹配时间格式：时间 : Sun Sep 28 15:49:50 CST 2025
+          const timeMatch = line.match(/时间\s*[:：]\s*(.+)/)
+          if (timeMatch) {
+            testTime = timeMatch[1].trim()
+            break
+          }
+        }
+      }
+    }
+    
+    // 如果上面的方法没找到，使用备用方法（在结尾部分查找）
+    if (testTime === '未知') {
+      // 在文本末尾查找时间信息，避免与基础信息中的系统在线时间混淆
+      const endSection = input.substring(Math.max(0, input.length - 1000)) // 只在最后1000字符中查找
+      const timeMatch = endSection.match(/时间\s*[:：]\s*(.+)/)
+      if (timeMatch) {
+        testTime = timeMatch[1].trim()
+      }
+    }
 
     return {
-      testTime: timeMatch ? timeMatch[1].trim() : '未知',
+      testTime,
       totalDuration: durationMatch ? durationMatch[1].trim() : '未知',
       version: versionMatch ? versionMatch[1].trim() : '未知'
     }
