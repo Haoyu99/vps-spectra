@@ -598,7 +598,7 @@ function generateIpQualitySection(ipQualityTest: IpQualityTest, options: Markdow
         section += `| 无记录数 | ${ipQualityTest.ipv4.blacklistStats.undetectedCount.value}${undetectedSuperscripts} |\n`
         
         if (ipQualityTest.ipv4.blacklistStats.totalChecked > 0) {
-            section += `| DNS黑名单统计 | 总检查:${ipQualityTest.ipv4.blacklistStats.totalChecked} 清洁:${ipQualityTest.ipv4.blacklistStats.cleanCount} 黑名单:${ipQualityTest.ipv4.blacklistStats.blacklistedCount} 其他:${ipQualityTest.ipv4.blacklistStats.otherCount} |\n`
+            section += `| DNS黑名单统计 | 总检查:${ipQualityTest.ipv4.blacklistStats.totalChecked} Clean:${ipQualityTest.ipv4.blacklistStats.cleanCount} Blacklisted:${ipQualityTest.ipv4.blacklistStats.blacklistedCount} Other:${ipQualityTest.ipv4.blacklistStats.otherCount} |\n`
         }
         section += '\n'
     }
