@@ -132,24 +132,84 @@ export interface StreamingTest {
   }
 }
 
+// 数据库来源信息
+export interface DatabaseSource {
+  id: string  // 数据库编号 (0-9, A-E)
+  name: string
+  url: string
+  description: string
+}
+
+// IP质量检测指标
+export interface IpQualityMetric {
+  value: number | string
+  sources: string[]  // 数据库编号列表
+  rating?: RatingResult
+  description?: string  // 用于ASN和公司信息的额外描述
+}
+
+// 安全信息指标
+export interface SecurityInfo {
+  [key: string]: {
+    value: string
+    sources: string[]
+  }
+}
+
+// 黑名单记录统计
+export interface BlacklistStats {
+  harmlessCount: { value: number; sources: string[] }
+  maliciousCount: { value: number; sources: string[] }
+  suspiciousCount: { value: number; sources: string[] }
+  undetectedCount: { value: number; sources: string[] }
+  totalChecked: number
+  cleanCount: number
+  blacklistedCount: number
+  otherCount: number
+}
+
 // IP质量检测结果
 export interface IpQualityTest {
+  databases: DatabaseSource[]  // 数据库列表
   ipv4: {
-    reputation: { value: number; rating: RatingResult }
-    trustScore: { value: number; rating: RatingResult }
-    vpnScore: { value: number; rating: RatingResult }
-    proxyScore: { value: number; rating: RatingResult }
-    threatScore: { value: number; rating: RatingResult }
-    fraudScore: { value: number; rating: RatingResult }
-    abuseScore: { value: number; rating: RatingResult }
-    threatLevel: { value: string; rating: RatingResult }
+    // 安全得分
+    reputation: IpQualityMetric
+    trustScore: IpQualityMetric
+    vpnScore: IpQualityMetric
+    proxyScore: IpQualityMetric
+    communityVotesHarmless: IpQualityMetric
+    communityVotesMalicious: IpQualityMetric
+    threatScore: IpQualityMetric
+    fraudScore: IpQualityMetric
+    abuseScore: IpQualityMetric
+    asnAbuseScore: IpQualityMetric
+    companyAbuseScore: IpQualityMetric
+    threatLevel: IpQualityMetric
+    
+    // 黑名单记录统计
+    blacklistStats: BlacklistStats
+    
+    // 安全信息
+    securityInfo: SecurityInfo
+    
+    // DNS黑名单
+    dnsBlacklist?: {
+      totalChecked: number
+      clean: number
+      blacklisted: number
+      other: number
+    }
   }
   ipv6: {
-    fraudScore: { value: number; rating: RatingResult }
-    abuseScore: { value: number; rating: RatingResult }
-    asnAbuseScore: { value: number; description: string; rating: RatingResult }
-    companyAbuseScore: { value: number; description: string; rating: RatingResult }
-    threatLevel: { value: string; rating: RatingResult }
+    // 安全得分
+    fraudScore: IpQualityMetric
+    abuseScore: IpQualityMetric
+    asnAbuseScore: IpQualityMetric
+    companyAbuseScore: IpQualityMetric
+    threatLevel?: IpQualityMetric
+    
+    // 安全信息
+    securityInfo: SecurityInfo
   }
   googleSearchViability: boolean
 }

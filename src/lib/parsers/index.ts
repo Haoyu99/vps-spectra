@@ -1,9 +1,10 @@
-import type { 
-  VpsTestResult, 
-  BasicInfo, 
-  CpuTest, 
-  MemoryTest, 
-  DiskDdTest, 
+import type {
+  VpsTestResult,
+  ParseError,
+  BasicInfo,
+  CpuTest,
+  MemoryTest,
+  DiskDdTest,
   DiskFioTest,
   StreamingTest,
   IpQualityTest,
@@ -11,7 +12,10 @@ import type {
   NetworkReturnTest,
   RouteTest,
   SpeedTest,
-  ParseError 
+  DatabaseSource,
+  IpQualityMetric,
+  BlacklistStats,
+  SecurityInfo
 } from '@/types'
 import {
   evaluateCpuSingleCore,
@@ -364,6 +368,216 @@ function parseDiskDdTest(section: string, errors: ParseError[]): DiskDdTest {
 }
 
 /**
+ * 解析IP质量检测数据库列表
+ */
+function parseIpQualityDatabases(section: string): DatabaseSource[] {
+  const databases: DatabaseSource[] = []
+  
+  // 解析数据库编号说明部分
+  const dbSection = section.match(/以下为各数据库编号[\s\S]*?IPV4:/)?.[0] || ''
+  
+  // 数据库URL映射
+  const dbUrlMap: { [key: string]: string } = {
+    'ipinfo': 'https://ipinfo.io/',
+    'scamalytics': 'https://scamalytics.com/',
+    'virustotal': 'https://www.virustotal.com/',
+    'abuseipdb': 'https://www.abuseipdb.com/',
+    'ip2location': 'https://www.ip2location.com/',
+    'ip-api': 'http://ip-api.com/',
+    'ipwhois': 'https://ipwhois.app/',
+    'ipregistry': 'https://ipregistry.co/',
+    'ipdata': 'https://ipdata.co/',
+    'db-ip': 'https://db-ip.com/',
+    'ipapiis': 'https://ipapi.is/',
+    'ipapicom': 'https://ipapi.com/',
+    'bigdatacloud': 'https://www.bigdatacloud.com/',
+    'dkly': 'https://dkly.com/',
+    'ipqualityscore': 'https://www.ipqualityscore.com/'
+  }
+  
+  // 解析数据库行，格式如：ipinfo数据库  [0] | scamalytics数据库 [1] | ...
+  const dbLines = dbSection.split('\n').filter(line => line.includes('[') && line.includes(']'))
+  
+  for (const line of dbLines) {
+    // 匹配格式：数据库名 [编号]，支持更灵活的匹配
+    const matches = line.match(/([^|\[\]]+)数据库\s*\[([0-9A-E])\]/g)
+    if (matches) {
+      for (const match of matches) {
+        const dbMatch = match.match(/([^|\[\]]+)数据库\s*\[([0-9A-E])\]/)
+        if (dbMatch) {
+          const dbKey = dbMatch[1].trim()
+          const dbId = dbMatch[2]
+          const dbName = `${dbKey}数据库`
+          
+          // 处理特殊的数据库名称映射
+          let mappedKey = dbKey
+          if (dbKey === 'ip-api') mappedKey = 'ip-api'
+          else if (dbKey === 'db-ip') mappedKey = 'db-ip'
+          else if (dbKey.includes('-')) mappedKey = dbKey
+          
+          const dbUrl = dbUrlMap[mappedKey] || dbUrlMap[dbKey] || '#'
+          const description = getDatabaseDescription(mappedKey) || getDatabaseDescription(dbKey)
+          
+          databases.push({
+            id: dbId,
+            name: dbName,
+            url: dbUrl,
+            description
+          })
+        }
+      }
+    }
+  }
+  
+  // 如果解析失败，使用默认列表
+  if (databases.length === 0) {
+    return [
+      { id: '0', name: 'ipinfo数据库', url: 'https://ipinfo.io/', description: 'IP地理位置和ASN信息' },
+      { id: '1', name: 'scamalytics数据库', url: 'https://scamalytics.com/', description: '欺诈检测和风险评估' },
+      { id: '2', name: 'virustotal数据库', url: 'https://www.virustotal.com/', description: '恶意软件和威胁检测' },
+      { id: '3', name: 'abuseipdb数据库', url: 'https://www.abuseipdb.com/', description: 'IP滥用报告数据库' },
+      { id: '4', name: 'ip2location数据库', url: 'https://www.ip2location.com/', description: 'IP地理定位服务' },
+      { id: '5', name: 'ip-api数据库', url: 'http://ip-api.com/', description: 'IP地理位置API' },
+      { id: '6', name: 'ipwhois数据库', url: 'https://ipwhois.app/', description: 'IP WHOIS信息查询' },
+      { id: '7', name: 'ipregistry数据库', url: 'https://ipregistry.co/', description: 'IP地理位置和威胁情报' },
+      { id: '8', name: 'ipdata数据库', url: 'https://ipdata.co/', description: 'IP地理位置和安全数据' },
+      { id: '9', name: 'db-ip数据库', url: 'https://db-ip.com/', description: 'IP地理位置数据库' },
+      { id: 'A', name: 'ipapiis数据库', url: 'https://ipapi.is/', description: 'IP地理位置和安全检测' },
+      { id: 'B', name: 'ipapicom数据库', url: 'https://ipapi.com/', description: 'IP地理位置API服务' },
+      { id: 'C', name: 'bigdatacloud数据库', url: 'https://www.bigdatacloud.com/', description: 'IP地理位置和网络数据' },
+      { id: 'D', name: 'dkly数据库', url: 'https://dkly.com/', description: 'IP威胁情报' },
+      { id: 'E', name: 'ipqualityscore数据库', url: 'https://www.ipqualityscore.com/', description: '综合IP质量评分' }
+    ]
+  }
+  
+  return databases
+}
+
+/**
+ * 获取数据库描述
+ */
+function getDatabaseDescription(dbKey: string): string {
+  const descriptions: { [key: string]: string } = {
+    'ipinfo': 'IP地理位置和ASN信息',
+    'scamalytics': '欺诈检测和风险评估',
+    'virustotal': '恶意软件和威胁检测',
+    'abuseipdb': 'IP滥用报告数据库',
+    'ip2location': 'IP地理定位服务',
+    'ip-api': 'IP地理位置API',
+    'ipwhois': 'IP WHOIS信息查询',
+    'ipregistry': 'IP地理位置和威胁情报',
+    'ipdata': 'IP地理位置和安全数据',
+    'db-ip': 'IP地理位置数据库',
+    'ipapiis': 'IP地理位置和安全检测',
+    'ipapicom': 'IP地理位置API服务',
+    'bigdatacloud': 'IP地理位置和网络数据',
+    'dkly': 'IP威胁情报',
+    'ipqualityscore': '综合IP质量评分'
+  }
+  return descriptions[dbKey] || '未知数据库'
+}
+
+/**
+ * 解析数据库来源编号
+ */
+function parseDatabaseSources(sourcesStr: string): string[] {
+  if (!sourcesStr) return []
+  
+  // 移除方括号并分割
+  const cleaned = sourcesStr.replace(/[\[\]]/g, '').trim()
+  if (!cleaned) return []
+  
+  // 分割多个来源（可能用空格或其他分隔符）
+  return cleaned.split(/\s+/).filter(s => s.length > 0)
+}
+
+/**
+ * 解析黑名单记录统计
+ */
+function parseBlacklistStats(section: string): BlacklistStats {
+  const defaultStats = {
+    harmlessCount: { value: 0, sources: [] },
+    maliciousCount: { value: 0, sources: [] },
+    suspiciousCount: { value: 0, sources: [] },
+    undetectedCount: { value: 0, sources: [] },
+    totalChecked: 0,
+    cleanCount: 0,
+    blacklistedCount: 0,
+    otherCount: 0
+  }
+
+  try {
+    // 解析黑名单记录统计行
+    const harmlessMatch = section.match(/无害记录数:\s*([0-9.]+)\s*\[([^\]]+)\]/)
+    const maliciousMatch = section.match(/恶意记录数:\s*([0-9.]+)\s*\[([^\]]+)\]/)
+    const suspiciousMatch = section.match(/可疑记录数:\s*([0-9.]+)\s*\[([^\]]+)\]/)
+    const undetectedMatch = section.match(/无记录数:\s*([0-9.]+)\s*\[([^\]]+)\]/)
+    
+    // 解析DNS黑名单统计
+    const dnsMatch = section.match(/DNS-黑名单:\s*(\d+)\(Total_Check\)\s*(\d+)\(Clean\)\s*(\d+)\(Blacklisted\)\s*(\d+)\(Other\)/)
+
+    return {
+      harmlessCount: harmlessMatch ? { 
+        value: parseInt(harmlessMatch[1]), 
+        sources: parseDatabaseSources(harmlessMatch[2]) 
+      } : defaultStats.harmlessCount,
+      maliciousCount: maliciousMatch ? { 
+        value: parseInt(maliciousMatch[1]), 
+        sources: parseDatabaseSources(maliciousMatch[2]) 
+      } : defaultStats.maliciousCount,
+      suspiciousCount: suspiciousMatch ? { 
+        value: parseInt(suspiciousMatch[1]), 
+        sources: parseDatabaseSources(suspiciousMatch[2]) 
+      } : defaultStats.suspiciousCount,
+      undetectedCount: undetectedMatch ? { 
+        value: parseInt(undetectedMatch[1]), 
+        sources: parseDatabaseSources(undetectedMatch[2]) 
+      } : defaultStats.undetectedCount,
+      totalChecked: dnsMatch ? parseInt(dnsMatch[1]) : 0,
+      cleanCount: dnsMatch ? parseInt(dnsMatch[2]) : 0,
+      blacklistedCount: dnsMatch ? parseInt(dnsMatch[3]) : 0,
+      otherCount: dnsMatch ? parseInt(dnsMatch[4]) : 0
+    }
+  } catch (error) {
+    return defaultStats
+  }
+}
+
+/**
+ * 解析安全信息
+ */
+function parseSecurityInfo(section: string): SecurityInfo {
+  const securityInfo: SecurityInfo = {}
+  
+  try {
+    // 查找安全信息部分
+    const securitySection = section.match(/安全信息:([\s\S]*?)(?:DNS-黑名单|Google搜索可行性|$)/)?.[1] || ''
+    
+    // 解析各种安全信息项
+    const securityLines = securitySection.split('\n').filter(line => line.trim() !== '')
+    
+    for (const line of securityLines) {
+      // 匹配格式：项目名: 值1 [来源1] 值2 [来源2] ...
+      const matches = line.match(/^([^:]+):\s*(.+)$/)
+      if (matches) {
+        const key = matches[1].trim()
+        const valuesStr = matches[2].trim()
+        
+        // 保持原始格式，包含值和来源的对应关系
+        securityInfo[key] = {
+          value: valuesStr, // 保持原始格式，在显示时再解析
+          sources: [] // 在显示时从value中提取
+        }
+      }
+    }
+    
+    return securityInfo
+  } catch (error) {
+    return {}
+  }
+}
+
+/**
  * 解析磁盘FIO测试结果
  */
 function parseDiskFioTest(section: string, errors: ParseError[]): DiskFioTest {
@@ -547,96 +761,83 @@ function parseStreamingTest(section: string, errors: ParseError[]): StreamingTes
  */
 function parseIpQualityTest(section: string, errors: ParseError[]): IpQualityTest {
   try {
+    // 解析数据库列表
+    const databases = parseIpQualityDatabases(section)
+    
+    // 分离IPv4和IPv6部分
     const ipv4Section = section.substring(section.indexOf("IPV4:"), section.indexOf("IPV6:"))
-    const ipv6Section = section.substring(section.indexOf("IPV6:"), section.indexOf("Google搜索可行性"))
+    const ipv6Section = section.substring(section.indexOf("IPV6:"))
 
-    // 解析IPv4指标
-    const extractIpv4Value = (pattern: RegExp) => {
-      const match = ipv4Section.match(pattern)
-      return match ? parseFloat(match[1]) : 0
+    // 解析带数据库来源的指标
+    const parseMetricWithSources = (text: string, pattern: RegExp, isString = false): IpQualityMetric | null => {
+      const match = text.match(pattern)
+      if (!match) return null
+      
+      const value = isString ? match[1] : (match[1].includes('.') ? parseFloat(match[1]) : parseInt(match[1]))
+      const sourcesStr = match[2] || ''
+      const sources = parseDatabaseSources(sourcesStr)
+      
+      return {
+        value,
+        sources,
+        rating: isString ? evaluateIpThreatLevel(match[1]) : evaluateIpRiskScore(typeof value === 'number' ? value : 0)
+      }
     }
 
-    const extractIpv4String = (pattern: RegExp) => {
-      const match = ipv4Section.match(pattern)
-      return match ? match[1] : 'unknown'
+    const parseMetricWithDescription = (text: string, pattern: RegExp): IpQualityMetric | null => {
+      const match = text.match(pattern)
+      if (!match) return null
+      
+      const value = parseFloat(match[1])
+      const description = match[2] || ''
+      const sourcesStr = match[3] || ''
+      const sources = parseDatabaseSources(sourcesStr)
+      
+      return {
+        value,
+        sources,
+        description,
+        rating: evaluateIpAbuseDescription(description)
+      }
     }
 
-    // 解析IPv6指标
-    const extractIpv6Value = (pattern: RegExp) => {
-      const match = ipv6Section.match(pattern)
-      return match ? parseFloat(match[1]) : 0
-    }
-
-    const extractIpv6String = (pattern: RegExp) => {
-      const match = ipv6Section.match(pattern)
-      return match ? match[1] : 'unknown'
-    }
-
-    const extractIpv6Description = (pattern: RegExp) => {
-      const match = ipv6Section.match(pattern)
-      return match ? { value: parseFloat(match[1]), description: match[2] } : { value: 0, description: 'unknown' }
-    }
+    // 解析黑名单记录统计
+    const blacklistStats = parseBlacklistStats(ipv4Section)
+    
+    // 解析安全信息
+    const ipv4SecurityInfo = parseSecurityInfo(ipv4Section)
+    const ipv6SecurityInfo = parseSecurityInfo(ipv6Section)
 
     // Google搜索可行性
     const googleSearchMatch = section.match(/Google搜索可行性：(\w+)/)
     const googleSearchViability = googleSearchMatch ? googleSearchMatch[1] === 'YES' : false
 
     return {
+      databases,
       ipv4: {
-        reputation: {
-          value: extractIpv4Value(/声誉\(越高越好\):\s*(\d+)/),
-          rating: evaluateIpReputation(extractIpv4Value(/声誉\(越高越好\):\s*(\d+)/))
-        },
-        trustScore: {
-          value: extractIpv4Value(/信任得分\(越高越好\):\s*([0-9.]+)/),
-          rating: evaluateIpTrust(extractIpv4Value(/信任得分\(越高越好\):\s*([0-9.]+)/))
-        },
-        vpnScore: {
-          value: extractIpv4Value(/VPN得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv4Value(/VPN得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        proxyScore: {
-          value: extractIpv4Value(/代理得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv4Value(/代理得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        threatScore: {
-          value: extractIpv4Value(/威胁得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv4Value(/威胁得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        fraudScore: {
-          value: extractIpv4Value(/欺诈得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv4Value(/欺诈得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        abuseScore: {
-          value: extractIpv4Value(/滥用得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv4Value(/滥用得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        threatLevel: {
-          value: extractIpv4String(/威胁级别:\s*([a-z]+)/),
-          rating: evaluateIpThreatLevel(extractIpv4String(/威胁级别:\s*([a-z]+)/))
-        }
+        reputation: parseMetricWithSources(ipv4Section, /声誉\(越高越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        trustScore: parseMetricWithSources(ipv4Section, /信任得分\(越高越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        vpnScore: parseMetricWithSources(ipv4Section, /VPN得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        proxyScore: parseMetricWithSources(ipv4Section, /代理得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        communityVotesHarmless: parseMetricWithSources(ipv4Section, /社区投票-无害:\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        communityVotesMalicious: parseMetricWithSources(ipv4Section, /社区投票-恶意:\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        threatScore: parseMetricWithSources(ipv4Section, /威胁得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        fraudScore: parseMetricWithSources(ipv4Section, /欺诈得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        abuseScore: parseMetricWithSources(ipv4Section, /滥用得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        asnAbuseScore: parseMetricWithDescription(ipv4Section, /ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        companyAbuseScore: parseMetricWithDescription(ipv4Section, /公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        threatLevel: parseMetricWithSources(ipv4Section, /威胁级别:\s*([a-z]+)\s*\[([^\]]+)\]/, true) || { value: 'unknown', sources: [] },
+        
+        blacklistStats,
+        securityInfo: ipv4SecurityInfo
       },
       ipv6: {
-        fraudScore: {
-          value: extractIpv6Value(/欺诈得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv6Value(/欺诈得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        abuseScore: {
-          value: extractIpv6Value(/滥用得分\(越低越好\):\s*([0-9.]+)/),
-          rating: evaluateIpRiskScore(extractIpv6Value(/滥用得分\(越低越好\):\s*([0-9.]+)/))
-        },
-        asnAbuseScore: {
-          ...extractIpv6Description(/ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)/),
-          rating: evaluateIpAbuseDescription(extractIpv6Description(/ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)/).description)
-        },
-        companyAbuseScore: {
-          ...extractIpv6Description(/公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)/),
-          rating: evaluateIpAbuseDescription(extractIpv6Description(/公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)/).description)
-        },
-        threatLevel: {
-          value: extractIpv6String(/威胁级别:\s*([a-z]+)/),
-          rating: evaluateIpThreatLevel(extractIpv6String(/威胁级别:\s*([a-z]+)/))
-        }
+        fraudScore: parseMetricWithSources(ipv6Section, /欺诈得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        abuseScore: parseMetricWithSources(ipv6Section, /滥用得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        asnAbuseScore: parseMetricWithDescription(ipv6Section, /ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        companyAbuseScore: parseMetricWithDescription(ipv6Section, /公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
+        threatLevel: parseMetricWithSources(ipv6Section, /威胁级别:\s*([a-z]+)\s*\[([^\]]+)\]/, true) || undefined,
+        securityInfo: ipv6SecurityInfo
       },
       googleSearchViability
     }

@@ -1,5 +1,5 @@
 import {formatNetworkReturnAsMarkdownTable} from '@/lib/parsers/networkReturnParser'
-import type {VpsTestResult, MarkdownOptions, RatingResult} from '@/types'
+import type {VpsTestResult, MarkdownOptions, RatingResult, IpQualityTest, DatabaseSource} from '@/types'
 
 /**
  * 将VPS测试结果格式化为Markdown
@@ -297,26 +297,168 @@ function generateDiskTestSection(diskDdTest: any, diskFioTest: any, options: Mar
 function generateStreamingTests(streamingTest: any, options: MarkdownOptions): string {
     let section = '## 🎬 流媒体解锁测试\n\n'
 
+    // 添加说明信息
+    if (options.useObsidianCallouts) {
+        section += '> [!info] 流媒体解锁说明\n'
+        section += '> 测试各大流媒体平台在当前IP下的访问状态，包括地区限制检测\n'
+        section += '> **✅ 解锁** = 可正常访问，**❌ 失败** = 无法访问，**🔄 仅自制剧** = 部分内容可用\n\n'
+    } else {
+        section += '**流媒体解锁说明：** 测试各大流媒体平台在当前IP下的访问状态\n'
+        section += '- ✅ 解锁 = 可正常访问\n'
+        section += '- ❌ 失败 = 无法访问\n'
+        section += '- 🔄 仅自制剧 = 部分内容可用\n\n'
+    }
+
     if (streamingTest.regionRestrictionCheck.services.length > 0) {
-        section += '| 服务 | IPv4 | IPv6 |\n'
-        section += '| --- | --- | --- |\n'
+        // IPv4 解锁结果
+        section += '### 📺 IPv4 解锁结果\n\n'
+        section += '| 流媒体平台 | 解锁状态 |\n'
+        section += '| --- | --- |\n'
 
         for (const service of streamingTest.regionRestrictionCheck.services) {
-            section += `| ${service.name} | ${service.ipv4Status} | ${service.ipv6Status} |\n`
+            const ipv4Status = formatStreamingStatus(service.ipv4Status)
+            section += `| ${service.name} | ${ipv4Status} |\n`
+        }
+        section += '\n'
+
+        // IPv6 解锁结果
+        section += '### 📱 IPv6 解锁结果\n\n'
+        section += '| 流媒体平台 | 解锁状态 |\n'
+        section += '| --- | --- |\n'
+
+        for (const service of streamingTest.regionRestrictionCheck.services) {
+            const ipv6Status = formatStreamingStatus(service.ipv6Status)
+            section += `| ${service.name} | ${ipv6Status} |\n`
         }
         section += '\n'
     }
 
+    // TikTok 特殊信息
     if (streamingTest.commonMediaTests.tiktokRegion) {
         if (options.useObsidianCallouts) {
-            section += `> [!info] TikTok 解锁信息\n`
-            section += `> **TikTok Region:** ${streamingTest.commonMediaTests.tiktokRegion}\n\n`
+            section += '> [!success] TikTok 解锁信息\n'
+            section += `> **检测地区：** ${streamingTest.commonMediaTests.tiktokRegion}\n`
+            section += '> TikTok 可正常访问，地区识别正确\n\n'
         } else {
-            section += `**TikTok Region:** ${streamingTest.commonMediaTests.tiktokRegion}\n\n`
+            section += '### 🎵 TikTok 解锁信息\n\n'
+            section += `**检测地区：** ${streamingTest.commonMediaTests.tiktokRegion}\n`
+            section += '**状态：** ✅ 可正常访问\n\n'
         }
     }
 
     return section
+}
+
+/**
+ * 格式化流媒体解锁状态
+ */
+function formatStreamingStatus(status: string): string {
+    if (!status || status.trim() === '') {
+        return '❓ 未检测'
+    }
+    
+    const lowerStatus = status.toLowerCase()
+    
+    if (lowerStatus.includes('解锁') || lowerStatus.includes('yes') || lowerStatus.includes('支持')) {
+        return `✅ ${status}`
+    } else if (lowerStatus.includes('失败') || lowerStatus.includes('no') || lowerStatus.includes('不支持')) {
+        return `❌ ${status}`
+    } else if (lowerStatus.includes('仅自制剧') || lowerStatus.includes('部分') || lowerStatus.includes('limited')) {
+        return `🔄 ${status}`
+    } else if (lowerStatus.includes('超时') || lowerStatus.includes('timeout')) {
+        return `⏱️ ${status}`
+    } else {
+        return `📋 ${status}`
+    }
+}
+
+/**
+ * 获取IP质量检测数据库列表（根据测试用例的编号系统）
+ */
+function getIpQualityDatabases(): DatabaseSource[] {
+    return [
+        { id: '0', name: 'ipinfo数据库', url: 'https://ipinfo.io/', description: 'IP地理位置和ASN信息' },
+        { id: '1', name: 'scamalytics数据库', url: 'https://scamalytics.com/', description: '欺诈检测和风险评估' },
+        { id: '2', name: 'virustotal数据库', url: 'https://www.virustotal.com/', description: '恶意软件和威胁检测' },
+        { id: '3', name: 'abuseipdb数据库', url: 'https://www.abuseipdb.com/', description: 'IP滥用报告数据库' },
+        { id: '4', name: 'ip2location数据库', url: 'https://www.ip2location.com/', description: 'IP地理定位服务' },
+        { id: '5', name: 'ip-api数据库', url: 'http://ip-api.com/', description: 'IP地理位置API' },
+        { id: '6', name: 'ipwhois数据库', url: 'https://ipwhois.app/', description: 'IP WHOIS信息查询' },
+        { id: '7', name: 'ipregistry数据库', url: 'https://ipregistry.co/', description: 'IP地理位置和威胁情报' },
+        { id: '8', name: 'ipdata数据库', url: 'https://ipdata.co/', description: 'IP地理位置和安全数据' },
+        { id: '9', name: 'db-ip数据库', url: 'https://db-ip.com/', description: 'IP地理位置数据库' },
+        { id: 'A', name: 'ipapiis数据库', url: 'https://ipapi.is/', description: 'IP地理位置和安全检测' },
+        { id: 'B', name: 'ipapicom数据库', url: 'https://ipapi.com/', description: 'IP地理位置API服务' },
+        { id: 'C', name: 'bigdatacloud数据库', url: 'https://www.bigdatacloud.com/', description: 'IP地理位置和网络数据' },
+        { id: 'D', name: 'dkly数据库', url: 'https://dkly.com/', description: 'IP威胁情报' },
+        { id: 'E', name: 'ipqualityscore数据库', url: 'https://www.ipqualityscore.com/', description: '综合IP质量评分' }
+    ]
+}
+
+/**
+ * 生成数据库链接（支持字母数字编号）
+ */
+function generateDatabaseLinks(sources: string[], databases: DatabaseSource[]): string {
+    if (!sources || sources.length === 0) return 'N/A'
+    
+    const links = sources.map(sourceId => {
+        const db = databases.find(d => d.id === sourceId)
+        if (!db) return `[${sourceId}]`
+        return `[${sourceId}](${db.url} "${db.description}")`
+    })
+    
+    return links.join(' ')
+}
+
+/**
+ * 生成安全信息的带角标显示
+ */
+function generateSecurityInfoWithSuperscripts(info: {value: string, sources: string[]}, databases: DatabaseSource[]): string {
+    // 如果value已经包含多个结果和来源，需要重新解析
+    if (info.value.includes('[') && info.value.includes(']')) {
+        // 解析格式：值1 [来源1] 值2 [来源2] ...
+        const results: string[] = []
+        const matches = info.value.match(/([^[\]]+)\s*\[([^\]]+)\]/g)
+        
+        if (matches) {
+            for (const match of matches) {
+                const valueSourceMatch = match.match(/([^[\]]+)\s*\[([^\]]+)\]/)
+                if (valueSourceMatch) {
+                    const value = valueSourceMatch[1].trim()
+                    const sources = parseDatabaseSources(valueSourceMatch[2])
+                    const superscripts = sources.map(s => `<sup>[${s}]</sup>`).join('')
+                    results.push(`${value}${superscripts}`)
+                }
+            }
+            return results.join(', ')
+        }
+    }
+    
+    // 如果是简单的值，直接添加角标
+    const superscripts = info.sources.map(s => `<sup>[${s}]</sup>`).join('')
+    return `${info.value}${superscripts}`
+}
+
+/**
+ * 获取数据库URL
+ */
+function getDatabaseUrl(sourceId: string, databases: DatabaseSource[]): string {
+    const db = databases.find(d => d.id === sourceId)
+    return db ? db.url : '#'
+}
+
+/**
+ * 解析数据库来源编号
+ */
+function parseDatabaseSources(sourcesStr: string): string[] {
+    if (!sourcesStr) return []
+    
+    // 移除方括号并分割
+    const cleaned = sourcesStr.replace(/[\[\]]/g, '').trim()
+    if (!cleaned) return []
+    
+    // 分割多个来源（可能用空格或其他分隔符）
+    return cleaned.split(/\s+/).filter(s => s.length > 0)
 }
 
 /**
@@ -347,34 +489,178 @@ function generateNetworkTests(result: VpsTestResult, options: MarkdownOptions): 
 /**
  * 生成IP质量检测部分
  */
-function generateIpQualitySection(ipQualityTest: any, options: MarkdownOptions): string {
+function generateIpQualitySection(ipQualityTest: IpQualityTest, options: MarkdownOptions): string {
     let section = ''
+    const databases = ipQualityTest.databases || getIpQualityDatabases()
+
+    // 添加注意事项和说明
+    if (options.useObsidianCallouts) {
+        section += '> [!warning] 重要提示\n'
+        section += '> **数据仅作参考，不代表100%准确！** 如果和实际情况不一致，请手动查询多个数据库比对。\n'
+        section += '> 不同数据库的算法和更新频率不同，建议综合多个来源的结果进行判断。\n\n'
+        
+        section += '> [!info] IP质量检测说明\n'
+        section += '> 本检测基于15个安全数据库，分析IP地址的信誉度、安全风险和使用类型\n'
+        section += '> 表格中的编号对应下方数据库列表，点击可直接访问对应数据库\n\n'
+    } else {
+        section += '**⚠️ 重要提示：** 数据仅作参考，不代表100%准确！如果和实际情况不一致，请手动查询多个数据库比对。\n\n'
+        section += '**IP质量检测说明：**\n'
+        section += '- 本检测基于15个安全数据库，分析IP地址的信誉度、安全风险和使用类型\n'
+        section += '- 表格中的编号对应下方数据库列表，点击可直接访问对应数据库\n'
+        section += '- 不同数据库的算法和更新频率不同，建议综合多个来源的结果进行判断\n\n'
+    }
+
+    // 数据库列表
+    section += '### 📊 数据库来源列表\n\n'
+    section += '| 编号 | 数据库名称 | 描述 |\n'
+    section += '| --- | --- | --- |\n'
+    for (const db of databases) {
+        section += `| ${db.id} | [${db.name}](${db.url}) | ${db.description} |\n`
+    }
+    section += '\n'
 
     // IPv4部分
-    section += '#### IPv4\n\n'
-    section += '| 指标 | 值 | 评级 |\n'
+    section += '### 🌐 IPv4 质量检测\n\n'
+    
+    // 安全得分
+    section += '#### 安全得分\n\n'
+    section += '| 检测指标 | 检测结果 | 评级 |\n'
     section += '| --- | --- | --- |\n'
-    section += `| 声誉(越高越好) | ${ipQualityTest.ipv4.reputation.value} | ${ipQualityTest.ipv4.reputation.rating.emoji} ${ipQualityTest.ipv4.reputation.rating.description} |\n`
-    section += `| 信任得分(越高越好) | ${ipQualityTest.ipv4.trustScore.value} | ${ipQualityTest.ipv4.trustScore.rating.emoji} ${ipQualityTest.ipv4.trustScore.rating.description} |\n`
-    section += `| VPN得分(越低越好) | ${ipQualityTest.ipv4.vpnScore.value} | ${ipQualityTest.ipv4.vpnScore.rating.emoji} ${ipQualityTest.ipv4.vpnScore.rating.description} |\n`
-    section += `| 代理得分(越低越好) | ${ipQualityTest.ipv4.proxyScore.value} | ${ipQualityTest.ipv4.proxyScore.rating.emoji} ${ipQualityTest.ipv4.proxyScore.rating.description} |\n`
-    section += `| 威胁得分(越低越好) | ${ipQualityTest.ipv4.threatScore.value} | ${ipQualityTest.ipv4.threatScore.rating.emoji} ${ipQualityTest.ipv4.threatScore.rating.description} |\n`
-    section += `| 欺诈得分(越低越好) | ${ipQualityTest.ipv4.fraudScore.value} | ${ipQualityTest.ipv4.fraudScore.rating.emoji} ${ipQualityTest.ipv4.fraudScore.rating.description} |\n`
-    section += `| 滥用得分(越低越好) | ${ipQualityTest.ipv4.abuseScore.value} | ${ipQualityTest.ipv4.abuseScore.rating.emoji} ${ipQualityTest.ipv4.abuseScore.rating.description} |\n`
-    section += `| 威胁级别 | ${ipQualityTest.ipv4.threatLevel.value} | ${ipQualityTest.ipv4.threatLevel.rating.emoji} ${ipQualityTest.ipv4.threatLevel.rating.description} |\n\n`
+    
+    if (ipQualityTest.ipv4.reputation) {
+        const superscripts = ipQualityTest.ipv4.reputation.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 声誉 (越高越好) | ${ipQualityTest.ipv4.reputation.value}${superscripts} | ${ipQualityTest.ipv4.reputation.rating?.emoji || ''} ${ipQualityTest.ipv4.reputation.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.trustScore) {
+        const superscripts = ipQualityTest.ipv4.trustScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 信任得分 (越高越好) | ${ipQualityTest.ipv4.trustScore.value}${superscripts} | ${ipQualityTest.ipv4.trustScore.rating?.emoji || ''} ${ipQualityTest.ipv4.trustScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.vpnScore) {
+        const superscripts = ipQualityTest.ipv4.vpnScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| VPN得分 (越低越好) | ${ipQualityTest.ipv4.vpnScore.value}${superscripts} | ${ipQualityTest.ipv4.vpnScore.rating?.emoji || ''} ${ipQualityTest.ipv4.vpnScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.proxyScore) {
+        const superscripts = ipQualityTest.ipv4.proxyScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 代理得分 (越低越好) | ${ipQualityTest.ipv4.proxyScore.value}${superscripts} | ${ipQualityTest.ipv4.proxyScore.rating?.emoji || ''} ${ipQualityTest.ipv4.proxyScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.communityVotesHarmless) {
+        const superscripts = ipQualityTest.ipv4.communityVotesHarmless.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 社区投票-无害 | ${ipQualityTest.ipv4.communityVotesHarmless.value}${superscripts} | - |\n`
+    }
+    if (ipQualityTest.ipv4.communityVotesMalicious) {
+        const superscripts = ipQualityTest.ipv4.communityVotesMalicious.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 社区投票-恶意 | ${ipQualityTest.ipv4.communityVotesMalicious.value}${superscripts} | - |\n`
+    }
+    if (ipQualityTest.ipv4.threatScore) {
+        const superscripts = ipQualityTest.ipv4.threatScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 威胁得分 (越低越好) | ${ipQualityTest.ipv4.threatScore.value}${superscripts} | ${ipQualityTest.ipv4.threatScore.rating?.emoji || ''} ${ipQualityTest.ipv4.threatScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.fraudScore) {
+        const superscripts = ipQualityTest.ipv4.fraudScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 欺诈得分 (越低越好) | ${ipQualityTest.ipv4.fraudScore.value}${superscripts} | ${ipQualityTest.ipv4.fraudScore.rating?.emoji || ''} ${ipQualityTest.ipv4.fraudScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.abuseScore) {
+        const superscripts = ipQualityTest.ipv4.abuseScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 滥用得分 (越低越好) | ${ipQualityTest.ipv4.abuseScore.value}${superscripts} | ${ipQualityTest.ipv4.abuseScore.rating?.emoji || ''} ${ipQualityTest.ipv4.abuseScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.asnAbuseScore) {
+        const asnDesc = ipQualityTest.ipv4.asnAbuseScore.description ? ` (${ipQualityTest.ipv4.asnAbuseScore.description})` : ''
+        const superscripts = ipQualityTest.ipv4.asnAbuseScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| ASN滥用得分 (越低越好) | ${ipQualityTest.ipv4.asnAbuseScore.value}${asnDesc}${superscripts} | ${ipQualityTest.ipv4.asnAbuseScore.rating?.emoji || ''} ${ipQualityTest.ipv4.asnAbuseScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.companyAbuseScore) {
+        const companyDesc = ipQualityTest.ipv4.companyAbuseScore.description ? ` (${ipQualityTest.ipv4.companyAbuseScore.description})` : ''
+        const superscripts = ipQualityTest.ipv4.companyAbuseScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 公司滥用得分 (越低越好) | ${ipQualityTest.ipv4.companyAbuseScore.value}${companyDesc}${superscripts} | ${ipQualityTest.ipv4.companyAbuseScore.rating?.emoji || ''} ${ipQualityTest.ipv4.companyAbuseScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv4.threatLevel) {
+        const superscripts = ipQualityTest.ipv4.threatLevel.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 威胁级别 | ${ipQualityTest.ipv4.threatLevel.value}${superscripts} | ${ipQualityTest.ipv4.threatLevel.rating?.emoji || ''} ${ipQualityTest.ipv4.threatLevel.rating?.description || ''} |\n`
+    }
+    section += '\n'
+
+    // IPv4 黑名单记录统计
+    if (ipQualityTest.ipv4.blacklistStats) {
+        section += '#### 黑名单记录统计\n\n'
+        section += '| 记录类型 | 检测结果 |\n'
+        section += '| --- | --- |\n'
+        
+        const harmlessSuperscripts = ipQualityTest.ipv4.blacklistStats.harmlessCount.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 无害记录数 | ${ipQualityTest.ipv4.blacklistStats.harmlessCount.value}${harmlessSuperscripts} |\n`
+        
+        const maliciousSuperscripts = ipQualityTest.ipv4.blacklistStats.maliciousCount.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 恶意记录数 | ${ipQualityTest.ipv4.blacklistStats.maliciousCount.value}${maliciousSuperscripts} |\n`
+        
+        const suspiciousSuperscripts = ipQualityTest.ipv4.blacklistStats.suspiciousCount.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 可疑记录数 | ${ipQualityTest.ipv4.blacklistStats.suspiciousCount.value}${suspiciousSuperscripts} |\n`
+        
+        const undetectedSuperscripts = ipQualityTest.ipv4.blacklistStats.undetectedCount.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 无记录数 | ${ipQualityTest.ipv4.blacklistStats.undetectedCount.value}${undetectedSuperscripts} |\n`
+        
+        if (ipQualityTest.ipv4.blacklistStats.totalChecked > 0) {
+            section += `| DNS黑名单统计 | 总检查:${ipQualityTest.ipv4.blacklistStats.totalChecked} 清洁:${ipQualityTest.ipv4.blacklistStats.cleanCount} 黑名单:${ipQualityTest.ipv4.blacklistStats.blacklistedCount} 其他:${ipQualityTest.ipv4.blacklistStats.otherCount} |\n`
+        }
+        section += '\n'
+    }
+
+    // IPv4 安全信息
+    if (Object.keys(ipQualityTest.ipv4.securityInfo).length > 0) {
+        section += '#### 安全信息\n\n'
+        section += '| 检测项目 | 检测结果 |\n'
+        section += '| --- | --- |\n'
+        
+        for (const [key, info] of Object.entries(ipQualityTest.ipv4.securityInfo)) {
+            const resultWithSuperscripts = generateSecurityInfoWithSuperscripts(info, databases)
+            section += `| ${key} | ${resultWithSuperscripts} |\n`
+        }
+        section += '\n'
+    }
 
     // IPv6部分
-    section += '#### IPv6\n\n'
-    section += '| 指标 | 值 | 评级 |\n'
+    section += '### 🌍 IPv6 质量检测\n\n'
+    section += '#### 安全得分\n\n'
+    section += '| 检测指标 | 检测结果 | 评级 |\n'
     section += '| --- | --- | --- |\n'
-    section += `| 欺诈得分(越低越好) | ${ipQualityTest.ipv6.fraudScore.value} | ${ipQualityTest.ipv6.fraudScore.rating.emoji} ${ipQualityTest.ipv6.fraudScore.rating.description} |\n`
-    section += `| 滥用得分(越低越好) | ${ipQualityTest.ipv6.abuseScore.value} | ${ipQualityTest.ipv6.abuseScore.rating.emoji} ${ipQualityTest.ipv6.abuseScore.rating.description} |\n`
-    section += `| ASN滥用得分(越低越好) | ${ipQualityTest.ipv6.asnAbuseScore.value} (${ipQualityTest.ipv6.asnAbuseScore.description}) | ${ipQualityTest.ipv6.asnAbuseScore.rating.emoji} ${ipQualityTest.ipv6.asnAbuseScore.rating.description} |\n`
-    section += `| 公司滥用得分(越低越好) | ${ipQualityTest.ipv6.companyAbuseScore.value} (${ipQualityTest.ipv6.companyAbuseScore.description}) | ${ipQualityTest.ipv6.companyAbuseScore.rating.emoji} ${ipQualityTest.ipv6.companyAbuseScore.rating.description} |\n`
-    section += `| 威胁级别 | ${ipQualityTest.ipv6.threatLevel.value} | ${ipQualityTest.ipv6.threatLevel.rating.emoji} ${ipQualityTest.ipv6.threatLevel.rating.description} |\n\n`
+    
+    if (ipQualityTest.ipv6.fraudScore) {
+        const superscripts = ipQualityTest.ipv6.fraudScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 欺诈得分 (越低越好) | ${ipQualityTest.ipv6.fraudScore.value}${superscripts} | ${ipQualityTest.ipv6.fraudScore.rating?.emoji || ''} ${ipQualityTest.ipv6.fraudScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv6.abuseScore) {
+        const superscripts = ipQualityTest.ipv6.abuseScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 滥用得分 (越低越好) | ${ipQualityTest.ipv6.abuseScore.value}${superscripts} | ${ipQualityTest.ipv6.abuseScore.rating?.emoji || ''} ${ipQualityTest.ipv6.abuseScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv6.asnAbuseScore) {
+        const asnDesc = ipQualityTest.ipv6.asnAbuseScore.description ? ` (${ipQualityTest.ipv6.asnAbuseScore.description})` : ''
+        const superscripts = ipQualityTest.ipv6.asnAbuseScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| ASN滥用得分 (越低越好) | ${ipQualityTest.ipv6.asnAbuseScore.value}${asnDesc}${superscripts} | ${ipQualityTest.ipv6.asnAbuseScore.rating?.emoji || ''} ${ipQualityTest.ipv6.asnAbuseScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv6.companyAbuseScore) {
+        const companyDesc = ipQualityTest.ipv6.companyAbuseScore.description ? ` (${ipQualityTest.ipv6.companyAbuseScore.description})` : ''
+        const superscripts = ipQualityTest.ipv6.companyAbuseScore.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 公司滥用得分 (越低越好) | ${ipQualityTest.ipv6.companyAbuseScore.value}${companyDesc}${superscripts} | ${ipQualityTest.ipv6.companyAbuseScore.rating?.emoji || ''} ${ipQualityTest.ipv6.companyAbuseScore.rating?.description || ''} |\n`
+    }
+    if (ipQualityTest.ipv6.threatLevel) {
+        const superscripts = ipQualityTest.ipv6.threatLevel.sources.map(s => `<sup>[${s}]</sup>`).join('')
+        section += `| 威胁级别 | ${ipQualityTest.ipv6.threatLevel.value}${superscripts} | ${ipQualityTest.ipv6.threatLevel.rating?.emoji || ''} ${ipQualityTest.ipv6.threatLevel.rating?.description || ''} |\n`
+    }
+    
+    // 将Google搜索可行性并入IPv6检测
+    section += `| Google搜索可行性 | ${ipQualityTest.googleSearchViability ? '✅ 可用' : '❌ 不可用'} | - |\n`
+    section += '\n'
 
-    // Google搜索可行性
-    section += `**Google搜索可行性：** ${ipQualityTest.googleSearchViability ? '✅ 可用' : '❌ 不可用'}\n\n`
+    // IPv6 安全信息
+    if (Object.keys(ipQualityTest.ipv6.securityInfo).length > 0) {
+        section += '#### 安全信息\n\n'
+        section += '| 检测项目 | 检测结果 |\n'
+        section += '| --- | --- |\n'
+        
+        for (const [key, info] of Object.entries(ipQualityTest.ipv6.securityInfo)) {
+            const resultWithSuperscripts = generateSecurityInfoWithSuperscripts(info, databases)
+            section += `| ${key} | ${resultWithSuperscripts} |\n`
+        }
+        section += '\n'
+    }
 
     return section
 }
