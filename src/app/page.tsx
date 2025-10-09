@@ -373,10 +373,27 @@ export default function HomePage() {
                   <span className="text-sm font-medium">解析统计</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                  <div>CPU得分: {result.cpuTest.singleCore.score}/{result.cpuTest.multiCore.score}</div>
-                  <div>内存速度: {result.memoryTest.singleThreadRead.speed.toFixed(0)}MB/s</div>
-                  <div>服务器运行时间: {result.metadata.testTime}</div>
-                  <div>融合怪版本: {result.metadata.version}</div>
+                  <div>
+                    CPU得分: {result.cpuTest.singleCore.score}
+                    {result.cpuTest.multiCore.threads > 1 && result.cpuTest.multiCore.score > 0 
+                      ? `/${result.cpuTest.multiCore.score}` 
+                      : '(单核)'}
+                  </div>
+                  <div>内存读写: {result.memoryTest.singleThreadRead.speed.toFixed(0)}/{result.memoryTest.singleThreadWrite.speed.toFixed(0)}MB/s</div>
+                  <div>测试时间: {result.metadata.testTime}</div>
+                  <div>
+                    磁盘类型: {(() => {
+                      const test4k = result.diskFioTest.tests.find(t => t.blockSize === '4k')
+                      if (test4k) {
+                        const avg4kSpeed = (test4k.read.speed + test4k.write.speed) / 2
+                        if (avg4kSpeed >= 200) return 'NVMe SSD'
+                        if (avg4kSpeed >= 50) return '标准SSD'
+                        if (avg4kSpeed >= 10) return 'HDD'
+                        return '性能受限'
+                      }
+                      return '未知'
+                    })()}
+                  </div>
                 </div>
               </motion.div>
             )}
