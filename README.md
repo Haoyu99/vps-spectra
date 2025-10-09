@@ -6,13 +6,14 @@
 
 ## ✨ 特性
 
-- 🎯 **智能解析** - 自动识别和解析VPS测试数据
+- 🎯 **智能解析** - 模块化解析器，自动识别和解析VPS测试数据
 - 🎨 **美观输出** - 生成适合论坛分享的Markdown格式
 - 📝 **Obsidian支持** - 完整支持Obsidian callout语法
 - 🌓 **双主题** - 支持浅色/深色主题切换
 - 📱 **响应式** - 完美适配桌面和移动设备
 - ⚡ **高性能** - 基于Next.js 15构建，性能优异
 - 🔧 **易部署** - 支持Vercel一键部署
+- 🏗️ **模块化架构** - 清晰的代码结构，易于维护和扩展
 
 ## 🎯 使用场景
 
@@ -123,6 +124,66 @@ curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x
 - **主题**: next-themes
 - **图标**: Lucide React
 
+## 🏗️ 项目架构
+
+### 模块化设计
+
+项目采用模块化架构，按功能将代码拆分为不同模块：
+
+```
+src/
+├── lib/
+│   ├── parsers/           # 解析器模块
+│   │   ├── index.ts       # 主解析器
+│   │   ├── basicInfoParser.ts      # 基础信息解析器
+│   │   ├── hardwareParser.ts       # 硬件性能解析器
+│   │   ├── streamingParser.ts      # 流媒体解锁解析器
+│   │   ├── networkParser.ts        # 网络测试解析器
+│   │   ├── networkReturnParser.ts  # 三网回程解析器
+│   │   └── utils.ts                # 解析工具函数
+│   ├── evaluators/        # 评估器模块
+│   │   ├── index.ts       # 主评估器
+│   │   ├── hardwareEvaluators.ts   # 硬件性能评估器
+│   │   └── networkEvaluators.ts    # 网络性能评估器
+│   └── formatters/        # 格式化器模块
+│       ├── index.ts       # 主格式化器
+│       ├── basicInfoFormatter.ts   # 基础信息格式化器
+│       ├── hardwareFormatter.ts    # 硬件性能格式化器
+│       ├── streamingFormatter.ts   # 流媒体格式化器
+│       └── networkFormatter.ts     # 网络测试格式化器
+└── types/
+    └── index.ts           # 类型定义
+```
+
+### 解析流程
+
+1. **原始文本解析** - 将输入文本按模块分割
+2. **模块化解析** - 各专门解析器处理对应部分
+3. **性能评估** - 对解析结果进行评估和评级
+4. **格式化输出** - 生成美化的Markdown报告
+
+### 测试模块分类
+
+#### 基础信息
+- 硬件配置（CPU、内存、磁盘）
+- 系统信息（操作系统、内核、架构）
+- 网络配置（虚拟化、NAT、IP信息）
+
+#### 硬件性能测试
+- **CPU测试** - 单核/多核性能评估
+- **内存测试** - 读写速度测试
+- **磁盘测试** - DD和FIO性能测试
+
+#### 流媒体解锁
+- IPv4/IPv6解锁状态检测
+- TikTok地区识别
+
+#### 网络测试
+- **IP质量检测** - 15个数据库综合评估
+- **邮件端口检测** - SMTP/POP3/IMAP端口状态
+- **三网回程** - 电信/联通/移动回程路由
+- **回程路由** - 详细路由跳点分析
+
 ## 📊 支持的测试项目
 
 - ✅ 基础系统信息
@@ -176,6 +237,40 @@ npm run type-check
 # 代码检查
 npm run lint
 ```
+
+### 代码结构说明
+
+#### 解析器 (Parsers)
+- `basicInfoParser.ts` - 解析服务器基础信息
+- `hardwareParser.ts` - 解析CPU、内存、磁盘性能数据
+- `streamingParser.ts` - 解析流媒体解锁测试结果
+- `networkParser.ts` - 解析网络相关测试（IP质量、邮件端口、路由等）
+
+#### 评估器 (Evaluators)
+- `hardwareEvaluators.ts` - 硬件性能评级算法
+- `networkEvaluators.ts` - 网络质量评级算法
+
+#### 格式化器 (Formatters)
+- `basicInfoFormatter.ts` - 基础信息Markdown格式化
+- `hardwareFormatter.ts` - 硬件测试结果格式化
+- `streamingFormatter.ts` - 流媒体测试结果格式化
+- `networkFormatter.ts` - 网络测试结果格式化
+
+### 添加新功能
+
+1. **添加新的测试模块**：
+   - 在 `types/index.ts` 中定义新的类型
+   - 在对应的解析器中添加解析逻辑
+   - 在评估器中添加评级逻辑
+   - 在格式化器中添加输出格式
+
+2. **修改评级标准**：
+   - 编辑 `evaluators/` 目录下的相应文件
+   - 调整评级阈值和描述
+
+3. **优化输出格式**：
+   - 编辑 `formatters/` 目录下的相应文件
+   - 调整Markdown输出格式
 
 ## 📄 许可证
 
