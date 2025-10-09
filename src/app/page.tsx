@@ -376,7 +376,7 @@ export default function HomePage() {
                   <div>CPU得分: {result.cpuTest.singleCore.score}/{result.cpuTest.multiCore.score}</div>
                   <div>内存速度: {result.memoryTest.singleThreadRead.speed.toFixed(0)}MB/s</div>
                   <div>服务器运行时间: {result.metadata.testTime}</div>
-                  <div>测试时间: {result.metadata.version}</div>
+                  <div>融合怪版本: {result.metadata.version}</div>
                 </div>
               </motion.div>
             )}

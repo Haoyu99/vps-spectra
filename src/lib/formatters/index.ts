@@ -50,11 +50,11 @@ function generateHeader(result: VpsTestResult, options: MarkdownOptions): string
     if (options.includeMetadata) {
         if (options.useObsidianCallouts) {
             header += `> [!info] 测试信息\n`
-            header += `> **测试时间：** ${result.metadata.version}\n`
+            header += `> **融合怪版本：** ${result.metadata.version}\n`
             header += `> **测试耗时：** ${result.metadata.totalDuration}\n`
             header += `> **服务器运行时间：** ${result.metadata.testTime}\n\n`
         } else {
-            header += `**测试时间：** ${result.metadata.version} \n`
+            header += `**融合怪版本：** ${result.metadata.version} \n`
             header += `**测试耗时：** ${result.metadata.totalDuration} \n`
             header += `**服务器运行时间：** ${result.metadata.testTime} \n\n`
         }
