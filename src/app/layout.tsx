@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
@@ -36,7 +36,11 @@ export const metadata: Metadata = {
     title: 'VPS-Spectra | 融合怪结果美化工具',
     description: '将融合怪基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法',
   },
-  viewport: 'width=device-width, initial-scale=1',
+  }
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
