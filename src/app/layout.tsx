@@ -16,9 +16,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'VPS-Spectra | VPS测试结果美化工具',
-  description: '将VPS基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法，适合论坛分享',
-  keywords: ['VPS', '基准测试', 'Markdown', 'Obsidian', '论坛分享'],
+  title: 'VPS-Spectra | 融合怪结果美化工具',
+  description: '将融合怪基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法，适合论坛分享',
+  keywords: ['VPS', '融合怪', '基准测试', 'Markdown', 'Obsidian', '论坛分享'],
   authors: [{ name: 'VPS-Spectra Team' }],
   creator: 'VPS-Spectra Team',
   publisher: 'VPS-Spectra',
@@ -27,14 +27,14 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'zh_CN',
     url: 'https://vps-spectra.vercel.app',
-    title: 'VPS-Spectra | VPS测试结果美化工具',
-    description: '将VPS基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法',
+    title: 'VPS-Spectra | 融合怪结果美化工具',
+    description: '将融合怪基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法',
     siteName: 'VPS-Spectra',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VPS-Spectra | VPS测试结果美化工具',
-    description: '将VPS基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法',
+    title: 'VPS-Spectra | 融合怪结果美化工具',
+    description: '将融合怪基准测试数据转换为美观的Markdown格式，支持Obsidian callout语法',
   },
   viewport: 'width=device-width, initial-scale=1',
   themeColor: [

@@ -67,7 +67,7 @@ export default function HomePage() {
 
   const handleProcess = async () => {
     if (!input.trim()) {
-      setErrors([{ section: 'input', message: '请先粘贴VPS测试数据', suggestion: '在左侧文本框中粘贴完整的测试结果' }])
+      setErrors([{ section: 'input', message: '请先粘贴融合怪测试数据', suggestion: '在左侧文本框中粘贴完整的测试结果' }])
       return
     }
 
@@ -172,15 +172,15 @@ export default function HomePage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  VPS-Spectra
-                </h1>
-                <p className="text-sm text-muted-foreground">VPS测试结果美化工具</p>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="VPS-Spectra Logo" 
+                className="w-14 h-14 rounded-lg"
+              />
+              <h1 className="text-2xl font-bold flex items-center">
+                <span className="text-blue-700 dark:text-blue-500 font-extrabold">VPS</span>
+                <span className="bg-[linear-gradient(to_right,#ef4444,#f97316,#eab308,#22c55e,#06b6d4,#3b82f6,#8b5cf6,#d946ef)] bg-clip-text text-transparent tracking-wide">-Spectra</span>
+              </h1>
             </motion.div>
 
             <div className="flex items-center space-x-2">
@@ -198,6 +198,44 @@ export default function HomePage() {
 
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-8">
+        {/* 使用说明 */}
+        <motion.div
+          className="mb-8 p-4 bg-muted/30 rounded-lg"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-primary">1</span>
+              </div>
+              <div>
+                <h4 className="font-medium text-foreground mb-1">粘贴数据</h4>
+                <p className="text-muted-foreground">将融合怪测试脚本的完整输出结果粘贴到左侧文本框</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-primary">2</span>
+              </div>
+              <div>
+                <h4 className="font-medium text-foreground mb-1">生成报告</h4>
+                <p className="text-muted-foreground">点击"生成美化报告"按钮，自动解析并美化数据</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-primary">3</span>
+              </div>
+              <div>
+                <h4 className="font-medium text-foreground mb-1">复制分享</h4>
+                <p className="text-muted-foreground">复制生成的Markdown格式结果，可直接分享使用</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* 输入面板 */}
           <motion.div
@@ -240,7 +278,7 @@ export default function HomePage() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="请粘贴VPS测试结果数据..."
+                placeholder="请粘贴融合怪测试结果数据..."
                 className="w-full h-96 p-4 border rounded-lg bg-background resize-none focus:ring-2 focus:ring-primary focus:border-transparent custom-scrollbar"
               />
               {input && (
@@ -399,42 +437,35 @@ export default function HomePage() {
             )}
           </motion.div>
         </div>
-
-        {/* 功能说明 */}
-        <motion.div
-          className="mt-12 p-6 bg-muted/30 rounded-lg"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <h3 className="text-lg font-semibold mb-4">使用说明</h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-            <div>
-              <h4 className="font-medium text-foreground mb-2">1. 粘贴数据</h4>
-              <p>将VPS测试脚本的完整输出结果粘贴到左侧文本框中</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground mb-2">2. 生成报告</h4>
-              <p>点击"生成美化报告"按钮，系统将自动解析并美化数据</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-foreground mb-2">3. 复制分享</h4>
-              <p>复制生成的Markdown格式结果，可直接在论坛或博客中使用</p>
-            </div>
-          </div>
-        </motion.div>
       </main>
 
       {/* 页脚 */}
       <footer className="border-t bg-background/50 backdrop-blur-sm mt-16">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <p>© 2024 VPS-Spectra. 专业的VPS测试结果美化工具</p>
-            <div className="flex items-center space-x-4">
-              <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
-              <a href="#" className="hover:text-foreground transition-colors">文档</a>
-              <a href="#" className="hover:text-foreground transition-colors">反馈</a>
+            <div className="flex items-center space-x-2">
+              <p>© 2025 VPS-Spectra by</p>
+              <a 
+                href="https://github.com/Haoyu99" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <img 
+                  src="https://github.com/Haoyu99.png" 
+                  alt="Haoyu99"
+                  className="w-6 h-6 rounded-full"
+                />
+              </a>
             </div>
+            <a 
+              href="https://github.com/Haoyu99/vps-spectra" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
+            </a>
           </div>
         </div>
       </footer>
