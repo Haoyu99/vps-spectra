@@ -124,19 +124,10 @@ function generateIpQualitySection(ipQualityTest: IpQualityTest, options: Markdow
 
   // 添加注意事项和说明
   if (options.useObsidianCallouts) {
-    section += '> [!warning] 重要提示\n'
-    section += '> **数据仅作参考，不代表100%准确！** 如果和实际情况不一致，请手动查询多个数据库比对。\n'
-    section += '> 不同数据库的算法和更新频率不同，建议综合多个来源的结果进行判断。\n\n'
-    
-    section += '> [!info] IP质量检测说明\n'
-    section += '> 本检测基于15个安全数据库，分析IP地址的信誉度、安全风险和使用类型\n'
-    section += '> 表格中的编号对应下方数据库列表，点击可直接访问对应数据库\n\n'
+    section += '> [!warning] 重要提醒\n'
+    section += '> **数据仅作参考，不代表100%准确！** 基于15个数据库检测，不同数据库算法和更新频率不同，建议综合多个来源判断。表格编号对应下方数据库列表。\n\n'
   } else {
-    section += '**⚠️ 重要提示：** 数据仅作参考，不代表100%准确！如果和实际情况不一致，请手动查询多个数据库比对。\n\n'
-    section += '**IP质量检测说明：**\n'
-    section += '- 本检测基于15个安全数据库，分析IP地址的信誉度、安全风险和使用类型\n'
-    section += '- 表格中的编号对应下方数据库列表，点击可直接访问对应数据库\n'
-    section += '- 不同数据库的算法和更新频率不同，建议综合多个来源的结果进行判断\n\n'
+    section += '**⚠️ 重要提醒：** 数据仅作参考，不代表100%准确！基于15个数据库检测，建议综合多个来源判断。\n\n'
   }
 
   // 数据库列表
@@ -334,39 +325,45 @@ function generateNetworkReturnSection(networkReturnTest: NetworkReturnTest, opti
     section += '- **检测目标：** 默认检测到广州的回程路由\n\n'
   }
 
-  // 统一表格显示三网回程信息
-  section += '#### 📊 回程路由汇总\n\n'
-  section += '| 运营商 | 目标地址 | IP地址 | 线路类型 | 线路质量 |\n'
-  section += '| --- | --- | --- | --- | --- |\n'
-
-  // 解析并显示电信回程
+  // 电信回程
   if (networkReturnTest.telecom.length > 0) {
+    section += '#### 📡 电信回程\n\n'
+    section += '| 目标地址 | IP地址 | 线路类型 | 线路质量 |\n'
+    section += '| --- | --- | --- | --- |\n'
     for (const entry of networkReturnTest.telecom) {
       const parsed = parseNetworkReturnLine(entry)
       const quality = evaluateLineQuality(parsed.info)
-      section += `| 电信 | ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
+      section += `| ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
     }
+    section += '\n'
   }
 
-  // 解析并显示联通回程
+  // 联通回程
   if (networkReturnTest.unicom.length > 0) {
+    section += '#### 📶 联通回程\n\n'
+    section += '| 目标地址 | IP地址 | 线路类型 | 线路质量 |\n'
+    section += '| --- | --- | --- | --- |\n'
     for (const entry of networkReturnTest.unicom) {
       const parsed = parseNetworkReturnLine(entry)
       const quality = evaluateLineQuality(parsed.info)
-      section += `| 联通 | ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
+      section += `| ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
     }
+    section += '\n'
   }
 
-  // 解析并显示移动回程
+  // 移动回程
   if (networkReturnTest.mobile.length > 0) {
+    section += '#### 📱 移动回程\n\n'
+    section += '| 目标地址 | IP地址 | 线路类型 | 线路质量 |\n'
+    section += '| --- | --- | --- | --- |\n'
     for (const entry of networkReturnTest.mobile) {
       const parsed = parseNetworkReturnLine(entry)
       const quality = evaluateLineQuality(parsed.info)
-      section += `| 移动 | ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
+      section += `| ${parsed.target} | ${parsed.ip} | ${parsed.info} | ${quality} |\n`
     }
+    section += '\n'
   }
 
-  section += '\n'
   return section
 }
 

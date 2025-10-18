@@ -37,7 +37,10 @@ export {
   evaluateCpuMultiCore,
   evaluateCpuEfficiency,
   evaluateMemoryRead,
-  evaluateMemoryWrite
+  evaluateMemoryWrite,
+  evaluateMemoryOverall,
+  evaluateDisk4kPerformance,
+  evaluateDiskOverselling
 } from './hardwareEvaluators'
 
 export {

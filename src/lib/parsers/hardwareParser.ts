@@ -4,7 +4,8 @@ import {
   evaluateCpuMultiCore,
   evaluateCpuEfficiency,
   evaluateMemoryRead,
-  evaluateMemoryWrite
+  evaluateMemoryWrite,
+  evaluateMemoryOverall
 } from '@/lib/evaluators'
 
 /**
@@ -99,7 +100,8 @@ export function parseMemoryTest(section: string, errors: ParseError[]): MemoryTe
       singleThreadWrite: {
         speed: writeSpeed,
         rating: evaluateMemoryWrite(writeSpeed)
-      }
+      },
+      overallRating: evaluateMemoryOverall(readSpeed, writeSpeed)
     }
   } catch (error) {
     errors.push({

@@ -76,6 +76,7 @@ export interface MemoryTest {
     speed: number
     rating: RatingResult
   }
+  overallRating?: RatingResult
 }
 
 // 磁盘DD测试结果

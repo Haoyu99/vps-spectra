@@ -11,11 +11,6 @@ import type { BasicInfo, MarkdownOptions } from '@/types'
 export function generateBasicInfo(basicInfo: BasicInfo, options: MarkdownOptions): string {
     let section = '## 📊 基础信息\n\n'
 
-    if (options.useObsidianCallouts) {
-        section += '> [!NOTE] 硬件配置 & 网络信息\n';
-        section += '> 这是关于服务器核心硬件、操作系统以及网络环境的基础信息概览。\n\n';
-    }
-
     // 硬件规格
     section += '### 💻 硬件规格\n\n';
     section += '| 项目 | 详情 |\n';

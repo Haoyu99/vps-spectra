@@ -49,13 +49,16 @@ export function generateStreamingTests(streamingTest: StreamingTest, options: Ma
 
   // TikTok 特殊信息
   if (streamingTest.commonMediaTests.tiktokRegion) {
-    if (options.useObsidianCallouts) {
-      section += '> [!success] TikTok 解锁信息\n'
-      section += `> **检测地区：** ${streamingTest.commonMediaTests.tiktokRegion}\n`
-      section += '> TikTok 可正常访问，地区识别正确\n\n'
+    section += '### 🎵 TikTok 解锁信息\n\n'
+    
+    const tiktokRegion = streamingTest.commonMediaTests.tiktokRegion
+    const isFailed = tiktokRegion.toLowerCase().includes('failed') || tiktokRegion === 'Failed'
+    
+    if (isFailed) {
+      section += `**检测地区：** ${tiktokRegion}\n`
+      section += '**状态：** ❌ 解锁失败\n\n'
     } else {
-      section += '### 🎵 TikTok 解锁信息\n\n'
-      section += `**检测地区：** ${streamingTest.commonMediaTests.tiktokRegion}\n`
+      section += `**检测地区：** ${tiktokRegion}\n`
       section += '**状态：** ✅ 可正常访问\n\n'
     }
   }

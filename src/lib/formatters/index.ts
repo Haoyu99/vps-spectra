@@ -128,10 +128,10 @@ function generateFooter(result: VpsTestResult, options: MarkdownOptions): string
 
     if (options.useObsidianCallouts) {
         footer += `> [!note] 报告生成信息\n`
-        footer += `> 本报告由 [VPS-Spectra](https://github.com/Haoyu99/vps-spectra) 自动生成\n`
+        footer += `> 本报告由 [VPS-Spectra](https://github.com/Haoyu99/vps-spectra) 生成\n`
         footer += `> 生成时间：${new Date().toLocaleString('zh-CN')}\n\n`
     } else {
-        footer += `*本报告由 [VPS-Spectra](https://github.com/Haoyu99/vps-spectra) 自动生成*\n`
+        footer += `*本报告由 [VPS-Spectra](https://github.com/Haoyu99/vps-spectra) 生成*\n`
         footer += `*生成时间：${new Date().toLocaleString('zh-CN')}*\n\n`
     }
 

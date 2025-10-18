@@ -120,7 +120,6 @@ curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x
 - **语言**: TypeScript
 - **样式**: Tailwind CSS
 - **动画**: Framer Motion
-- **状态管理**: Zustand
 - **主题**: next-themes
 - **图标**: Lucide React
 

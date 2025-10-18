@@ -17,9 +17,16 @@ export function parseStreamingTest(section: string, errors: ParseError[]): Strea
     const ipv6Results: Array<{service: string, status: string}> = []
     const services: Array<{name: string, ipv4Status: string, ipv6Status: string}> = []
     
-    // 提取TikTok信息
-    const tiktokMatch = section.match(/Tiktok Region:\s*【(.+?)】/)
-    const tiktokRegion = tiktokMatch ? tiktokMatch[1] : undefined
+    // 提取TikTok信息（支持【地区】和直接地区两种格式）
+    let tiktokRegion: string | undefined
+    const tiktokMatchBracket = section.match(/Tiktok Region:\s*【(.+?)】/)
+    const tiktokMatchDirect = section.match(/Tiktok Region:\s*(\S+)/)
+    
+    if (tiktokMatchBracket) {
+      tiktokRegion = tiktokMatchBracket[1]
+    } else if (tiktokMatchDirect) {
+      tiktokRegion = tiktokMatchDirect[1]
+    }
 
     // 解析RegionRestrictionCheck部分
     const ipv4Section = section.substring(
