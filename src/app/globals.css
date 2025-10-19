@@ -106,4 +106,39 @@
       hsl(var(--primary)) 50%, 
       hsl(var(--accent)) 100%);
   }
+
+  /* Obsidian风格的callout */
+  .obsidian-callout {
+    @apply rounded shadow-sm;
+  }
+
+  .obsidian-callout .callout-title {
+    @apply flex items-center gap-2 font-semibold;
+  }
+
+  .obsidian-callout .callout-content {
+    @apply text-sm leading-relaxed;
+    color: inherit;
+  }
+
+  .obsidian-callout .callout-content strong {
+    @apply font-semibold;
+    color: inherit;
+  }
+
+  .obsidian-callout .callout-content code {
+    @apply bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono;
+  }
+
+  .obsidian-callout .callout-content em {
+    @apply italic;
+  }
+
+  .obsidian-callout .callout-content a {
+    @apply text-primary underline hover:no-underline;
+  }
+
+  .obsidian-callout .callout-content br {
+    @apply block my-1;
+  }
 }
