@@ -82,7 +82,7 @@ curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x
 
 点击"生成美化报告"按钮，系统将自动：
 - 解析测试数据
-- 评估性能等级
+- 评估性能等级 (评级标准来源于 [oneclickvirt/ecs 文档](https://github.com/oneclickvirt/ecs/blob/master/README_NEW_USER.md))
 - 生成美化的Markdown
 
 ### 4. 复制使用
