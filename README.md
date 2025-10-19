@@ -2,7 +2,7 @@
 
 > 专业的VPS测试结果美化工具，将原始测试数据转换为美观的Markdown格式，支持Obsidian callout语法
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/vps-spectra)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/haoyu99/vps-spectra)
 
 ## ✨ 特性
 
@@ -72,7 +72,8 @@ docker run -p 3000:3000 vps-spectra
 # 使用融合怪脚本
 curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh
 ```
-
+> 
+> 目前支持的融合怪版本为：2025.08.31
 ### 2. 粘贴数据
 
 将完整的测试输出复制到VPS-Spectra的输入框中
@@ -126,7 +127,7 @@ curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x
 
 ## 📄 许可证
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+MIT License 
 
 ## 🙏 致谢
 
