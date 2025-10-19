@@ -13,12 +13,14 @@ import {
   Zap,
   AlertCircle,
   CheckCircle,
-  Info
+  Info,
+  Eye
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { parseVpsTestResult } from '@/lib/parsers'
 import { formatToMarkdown } from '@/lib/formatters'
 import type { VpsTestResult, ParseError, MarkdownOptions } from '@/types'
+import MarkdownPreview from '@/components/MarkdownPreview'
 
 export default function HomePage() {
   const [input, setInput] = useState('')
@@ -28,6 +30,7 @@ export default function HomePage() {
   const [result, setResult] = useState<VpsTestResult | null>(null)
   const [copySuccess, setCopySuccess] = useState(false)
   const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [options, setOptions] = useState<MarkdownOptions>({
     useObsidianCallouts: true,
     includeMetadata: true,
@@ -350,6 +353,14 @@ export default function HomePage() {
               </h2>
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => setIsPreviewOpen(true)}
+                  disabled={!output}
+                  className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="预览渲染效果"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
                   onClick={handleCopy}
                   disabled={!output}
                   className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -469,6 +480,13 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Markdown预览模态框 */}
+      <MarkdownPreview
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        markdown={output}
+      />
     </div>
   )
 }
