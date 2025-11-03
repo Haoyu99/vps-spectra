@@ -211,6 +211,14 @@ export interface IpQualityTest {
     
     // 安全信息
     securityInfo: SecurityInfo
+    
+    // DNS黑名单
+    dnsBlacklist?: {
+      totalChecked: number
+      clean: number
+      blacklisted: number
+      other: number
+    }
   }
   googleSearchViability: boolean
 }

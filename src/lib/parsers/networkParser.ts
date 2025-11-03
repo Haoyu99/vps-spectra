@@ -50,7 +50,10 @@ function parseIpQualityDatabases(section: string): DatabaseSource[] {
     'ipapicom': 'https://ipapi.com/',
     'bigdatacloud': 'https://www.bigdatacloud.com/',
     'dkly': 'https://data.dkly.net/',
-    'ipqualityscore': 'https://www.ipqualityscore.com/'
+    'ipqualityscore': 'https://www.ipqualityscore.com/',
+    'ipintel': 'https://check.getipintel.net/',
+    'ipfighter': 'https://ipfighter.com/',
+    'fraudlogix': 'https://fraudlogix.com/'
   }
   
   // 解析数据库行，格式如：ipinfo数据库  [0] | scamalytics数据库 [1] | ...
@@ -58,10 +61,10 @@ function parseIpQualityDatabases(section: string): DatabaseSource[] {
   
   for (const line of dbLines) {
     // 匹配格式：数据库名 [编号]，支持更灵活的匹配
-    const matches = line.match(/([^|\[\]]+)数据库\s*\[([0-9A-E])\]/g)
+    const matches = line.match(/([^|\[\]]+)数据库\s*\[([0-9A-Z])\]/g)
     if (matches) {
       for (const match of matches) {
-        const dbMatch = match.match(/([^|\[\]]+)数据库\s*\[([0-9A-E])\]/)
+        const dbMatch = match.match(/([^|\[\]]+)数据库\s*\[([0-9A-Z])\]/)
         if (dbMatch) {
           const dbKey = dbMatch[1].trim()
           const dbId = dbMatch[2]
@@ -114,7 +117,10 @@ function getDatabaseDescription(dbKey: string): string {
     'ipapicom': 'IP地理位置API服务',
     'bigdatacloud': 'IP地理位置和网络数据',
     'dkly': 'IP威胁情报',
-    'ipqualityscore': '综合IP质量评分'
+    'ipqualityscore': '综合IP质量评分',
+    'ipintel': 'IP代理和VPN检测',
+    'ipfighter': 'IP欺诈和风险评估',
+    'fraudlogix': 'IP欺诈检测服务'
   }
   return descriptions[dbKey] || '未知数据库'
 }
@@ -138,7 +144,10 @@ function getDefaultDatabases(): DatabaseSource[] {
     { id: 'B', name: 'ipapicom数据库', url: 'https://ipapi.com/', description: 'IP地理位置API服务' },
     { id: 'C', name: 'bigdatacloud数据库', url: 'https://www.bigdatacloud.com/', description: 'IP地理位置和网络数据' },
     { id: 'D', name: 'dkly数据库', url: 'https://data.dkly.net/', description: 'IP威胁情报' },
-    { id: 'E', name: 'ipqualityscore数据库', url: 'https://www.ipqualityscore.com/', description: '综合IP质量评分' }
+    { id: 'E', name: 'ipqualityscore数据库', url: 'https://www.ipqualityscore.com/', description: '综合IP质量评分' },
+    { id: 'F', name: 'ipintel数据库', url: 'https://check.getipintel.net/', description: 'IP代理和VPN检测' },
+    { id: 'G', name: 'ipfighter数据库', url: 'https://ipfighter.com/', description: 'IP欺诈和风险评估' },
+    { id: 'H', name: 'fraudlogix数据库', url: 'https://fraudlogix.com/', description: 'IP欺诈检测服务' }
   ]
 }
 
@@ -297,6 +306,15 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
     const ipv4SecurityInfo = parseSecurityInfo(ipv4Section)
     const ipv6SecurityInfo = parseSecurityInfo(ipv6Section)
 
+    // 解析IPv6的DNS黑名单
+    const ipv6DnsMatch = ipv6Section.match(/DNS-黑名单:\s*(\d+)\(Total_Check\)\s*(\d+)\(Clean\)\s*(\d+)\(Blacklisted\)\s*(\d+)\(Other\)/)
+    const ipv6DnsBlacklist = ipv6DnsMatch ? {
+      totalChecked: parseInt(ipv6DnsMatch[1]),
+      clean: parseInt(ipv6DnsMatch[2]),
+      blacklisted: parseInt(ipv6DnsMatch[3]),
+      other: parseInt(ipv6DnsMatch[4])
+    } : undefined
+
     // Google搜索可行性
     const googleSearchMatch = section.match(/Google搜索可行性：(\w+)/)
     const googleSearchViability = googleSearchMatch ? googleSearchMatch[1] === 'YES' : false
@@ -315,7 +333,7 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
         abuseScore: parseMetricWithSources(ipv4Section, /滥用得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         asnAbuseScore: parseMetricWithDescription(ipv4Section, /ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         companyAbuseScore: parseMetricWithDescription(ipv4Section, /公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
-        threatLevel: parseMetricWithSources(ipv4Section, /威胁级别:\s*([a-z]+)\s*\[([^\]]+)\]/, true) || { value: 'unknown', sources: [] },
+        threatLevel: parseMetricWithSources(ipv4Section, /威胁级别:\s*([a-zA-Z]+)\s*\[([^\]]+)\]/, true) || { value: 'unknown', sources: [] },
         
         blacklistStats,
         securityInfo: ipv4SecurityInfo
@@ -325,8 +343,9 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
         abuseScore: parseMetricWithSources(ipv6Section, /滥用得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         asnAbuseScore: parseMetricWithDescription(ipv6Section, /ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         companyAbuseScore: parseMetricWithDescription(ipv6Section, /公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
-        threatLevel: parseMetricWithSources(ipv6Section, /威胁级别:\s*([a-z]+)\s*\[([^\]]+)\]/, true) || undefined,
-        securityInfo: ipv6SecurityInfo
+        threatLevel: parseMetricWithSources(ipv6Section, /威胁级别:\s*([a-zA-Z]+)\s*\[([^\]]+)\]/, true) || undefined,
+        securityInfo: ipv6SecurityInfo,
+        dnsBlacklist: ipv6DnsBlacklist
       },
       googleSearchViability
     }

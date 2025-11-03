@@ -68,7 +68,10 @@ function getIpQualityDatabases(): DatabaseSource[] {
     { id: 'B', name: 'ipapicom数据库', url: 'https://ipapi.com/', description: 'IP地理位置API服务' },
     { id: 'C', name: 'bigdatacloud数据库', url: 'https://www.bigdatacloud.com/', description: 'IP地理位置和网络数据' },
     { id: 'D', name: 'dkly数据库', url: 'https://dkly.com/', description: 'IP威胁情报' },
-    { id: 'E', name: 'ipqualityscore数据库', url: 'https://www.ipqualityscore.com/', description: '综合IP质量评分' }
+    { id: 'E', name: 'ipqualityscore数据库', url: 'https://www.ipqualityscore.com/', description: '综合IP质量评分' },
+    { id: 'F', name: 'ipintel数据库', url: 'https://check.getipintel.net/', description: 'IP代理和VPN检测' },
+    { id: 'G', name: 'ipfighter数据库', url: 'https://ipfighter.com/', description: 'IP欺诈和风险评估' },
+    { id: 'H', name: 'fraudlogix数据库', url: 'https://fraudlogix.com/', description: 'IP欺诈检测服务' }
   ]
 }
 
@@ -268,6 +271,18 @@ function generateIpQualitySection(ipQualityTest: IpQualityTest, options: Markdow
   // 将Google搜索可行性并入IPv6检测
   section += `| Google搜索可行性 | ${ipQualityTest.googleSearchViability ? '✅ 可用' : '❌ 不可用'} | - |\n`
   section += '\n'
+
+  // IPv6 DNS黑名单统计
+  if (ipQualityTest.ipv6.dnsBlacklist && ipQualityTest.ipv6.dnsBlacklist.totalChecked > 0) {
+    section += '##### DNS黑名单统计\n\n'
+    section += '| 统计项 | 数值 |\n'
+    section += '| --- | --- |\n'
+    section += `| 总检查数 | ${ipQualityTest.ipv6.dnsBlacklist.totalChecked} |\n`
+    section += `| Clean | ${ipQualityTest.ipv6.dnsBlacklist.clean} |\n`
+    section += `| Blacklisted | ${ipQualityTest.ipv6.dnsBlacklist.blacklisted} |\n`
+    section += `| Other | ${ipQualityTest.ipv6.dnsBlacklist.other} |\n`
+    section += '\n'
+  }
 
   // IPv6 安全信息
   if (Object.keys(ipQualityTest.ipv6.securityInfo).length > 0) {
