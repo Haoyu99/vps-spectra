@@ -166,6 +166,44 @@ function parseDatabaseSources(sourcesStr: string): string[] {
 }
 
 /**
+ * 解析威胁级别（支持多个值和来源）
+ * 例如：威胁级别: Low [H] low [9]
+ */
+function parseThreatLevel(text: string): IpQualityMetric | null {
+  const match = text.match(/威胁级别:\s*(.+)/)
+  if (!match) return null
+  
+  const content = match[1].trim()
+  
+  // 匹配所有的 "值 [来源]" 对，支持忽略大小写
+  const valueSourcePairs = content.matchAll(/([a-zA-Z]+)\s*\[([^\]]+)\]/gi)
+  
+  const allSources: string[] = []
+  const allValues: string[] = []
+  
+  for (const pair of valueSourcePairs) {
+    const value = pair[1].toLowerCase() // 统一转为小写进行比较
+    const sources = parseDatabaseSources(pair[2])
+    
+    allValues.push(value)
+    allSources.push(...sources)
+  }
+  
+  if (allValues.length === 0) {
+    return { value: 'unknown', sources: [] }
+  }
+  
+  // 使用第一个值作为主要值（或者可以选择最严重的）
+  const primaryValue = allValues[0]
+  
+  return {
+    value: primaryValue,
+    sources: allSources,
+    rating: evaluateIpThreatLevel(primaryValue)
+  }
+}
+
+/**
  * 解析黑名单记录统计
  */
 function parseBlacklistStats(section: string): BlacklistStats {
@@ -333,7 +371,7 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
         abuseScore: parseMetricWithSources(ipv4Section, /滥用得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         asnAbuseScore: parseMetricWithDescription(ipv4Section, /ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         companyAbuseScore: parseMetricWithDescription(ipv4Section, /公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
-        threatLevel: parseMetricWithSources(ipv4Section, /威胁级别:\s*([a-zA-Z]+)\s*\[([^\]]+)\]/, true) || { value: 'unknown', sources: [] },
+        threatLevel: parseThreatLevel(ipv4Section) || { value: 'unknown', sources: [] },
         
         blacklistStats,
         securityInfo: ipv4SecurityInfo
@@ -343,7 +381,7 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
         abuseScore: parseMetricWithSources(ipv6Section, /滥用得分\(越低越好\):\s*([0-9.]+)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         asnAbuseScore: parseMetricWithDescription(ipv6Section, /ASN滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
         companyAbuseScore: parseMetricWithDescription(ipv6Section, /公司滥用得分\(越低越好\):\s*([0-9.]+)\s*\(([^)]+)\)\s*\[([^\]]+)\]/) || { value: 0, sources: [] },
-        threatLevel: parseMetricWithSources(ipv6Section, /威胁级别:\s*([a-zA-Z]+)\s*\[([^\]]+)\]/, true) || undefined,
+        threatLevel: parseThreatLevel(ipv6Section) || undefined,
         securityInfo: ipv6SecurityInfo,
         dnsBlacklist: ipv6DnsBlacklist
       },
