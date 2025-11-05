@@ -301,8 +301,28 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
     const databases = parseIpQualityDatabases(section)
     
     // 分离IPv4和IPv6部分
-    const ipv4Section = section.substring(section.indexOf("IPV4:"), section.indexOf("IPV6:"))
-    const ipv6Section = section.substring(section.indexOf("IPV6:"))
+    let ipv4Section = ''
+    let ipv6Section = ''
+
+    let ipv4Index = section.indexOf('IPv4 质量检测')
+    let ipv6Index = section.indexOf('IPv6 质量检测')
+
+    // Fallback to legacy markers if new headers are not found
+    if (ipv4Index === -1 && ipv6Index === -1) {
+      ipv4Index = section.indexOf('IPV4:')
+      ipv6Index = section.indexOf('IPV6:')
+    }
+
+    if (ipv4Index !== -1) {
+      if (ipv6Index !== -1 && ipv6Index > ipv4Index) {
+        ipv4Section = section.substring(ipv4Index, ipv6Index)
+        ipv6Section = section.substring(ipv6Index)
+      } else {
+        ipv4Section = section.substring(ipv4Index)
+      }
+    } else if (ipv6Index !== -1) {
+      ipv6Section = section.substring(ipv6Index)
+    }
 
     // 解析带数据库来源的指标
     const parseMetricWithSources = (text: string, pattern: RegExp, isString = false): IpQualityMetric | null => {
