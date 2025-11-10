@@ -138,11 +138,11 @@ export function parseDiskDdTest(section: string, errors: ParseError[]): DiskDdTe
           const readInfo = speedMatches[1];
           
           const writeSpeedMatch = writeInfo.match(/([0-9.]+\s*[GM]?B\/s)/);
-          const writeIOPSMatch = writeInfo.match(/\(([0-9]+)\s*IOPS/);
+          const writeIOPSMatch = writeInfo.match(/\(([\d.]+)\s*IOPS/);
           const writeTimeMatch = writeInfo.match(/([0-9.]+s)\)/);
           
           const readSpeedMatch = readInfo.match(/([0-9.]+\s*[GM]?B\/s)/);
-          const readIOPSMatch = readInfo.match(/\(([0-9]+)\s*IOPS/);
+          const readIOPSMatch = readInfo.match(/\(([\d.]+)\s*IOPS/);
           const readTimeMatch = readInfo.match(/([0-9.]+s)\)/);
 
           tests.push({
