@@ -128,7 +128,7 @@ function generateIpQualitySection(ipQualityTest: IpQualityTest, options: Markdow
   // 添加注意事项和说明
   if (options.useObsidianCallouts) {
     section += '> [!warning] 重要提醒\n'
-    section += '> **数据仅作参考，不代表100%准确！** 基于15个数据库检测，不同数据库算法和更新频率不同，建议综合多个来源判断。表格编号对应下方数据库列表。\n\n'
+    section += '> **数据仅作参考，不代表100%准确！** 基于18个数据库检测，不同数据库算法和更新频率不同，建议综合多个来源判断。表格编号对应下方数据库列表。\n\n'
   } else {
     section += '**⚠️ 重要提醒：** 数据仅作参考，不代表100%准确！基于15个数据库检测，建议综合多个来源判断。\n\n'
   }
