@@ -13,39 +13,53 @@ import type { StreamingTest, ParseError } from '@/types'
  */
 export function parseStreamingTest(section: string, errors: ParseError[]): StreamingTest {
   try {
-    const services: Array<{name: string, ipv4Status: string, ipv6Status: string}> = []
-    
+    const services: Array<{
+      name: string,
+      ipv4Status: string,
+      ipv4Region?: string,
+      ipv6Status: string,
+      ipv6Region?: string
+    }> = [];
+
     // 定位IPV4和IPV6的测试结果部分
     const ipv4Match = section.match(/IPV4:\s*([\s\S]*?)(?=IPV6:|$)/);
     const ipv6Match = section.match(/IPV6:\s*([\s\S]*)/);
 
-    const serviceMap = new Map<string, {ipv4: string, ipv6: string}>();
+    const serviceMap = new Map<string, {
+      ipv4: string,
+      ipv4Region?: string,
+      ipv6: string,
+      ipv6Region?: string
+    }>();
 
     // 解析IPV4部分
     if (ipv4Match && ipv4Match[1]) {
       const ipv4Section = ipv4Match[1];
-      const serviceRegex = /^\s*([^\s].*?)\s{2,}(YES|NO|Banned|Unknown|Failed)[\s\S]*?$/gm;
+      const serviceRegex = /^\s*([^\s].*?)\s{2,}(YES|NO|Banned|Unknown|Failed)(?:\s*\(Region: ([^\)]+)\))?[\s\S]*?$/gm;
       let match;
       while ((match = serviceRegex.exec(ipv4Section)) !== null) {
         const serviceName = match[1].trim();
         const status = match[2].trim();
-        serviceMap.set(serviceName, { ipv4: status, ipv6: "未测试" });
+        const region = match[3] ? match[3].trim() : undefined;
+        serviceMap.set(serviceName, { ipv4: status, ipv4Region: region, ipv6: "未测试" });
       }
     }
 
     // 解析IPV6部分
     if (ipv6Match && ipv6Match[1]) {
       const ipv6Section = ipv6Match[1];
-      const serviceRegex = /^\s*([^\s].*?)\s{2,}(YES|NO|Banned|Unknown|Failed)[\s\S]*?$/gm;
+      const serviceRegex = /^\s*([^\s].*?)\s{2,}(YES|NO|Banned|Unknown|Failed)(?:\s*\(Region: ([^\)]+)\))?[\s\S]*?$/gm;
       let match;
       while ((match = serviceRegex.exec(ipv6Section)) !== null) {
         const serviceName = match[1].trim();
         const status = match[2].trim();
+        const region = match[3] ? match[3].trim() : undefined;
         const existing = serviceMap.get(serviceName);
         if (existing) {
           existing.ipv6 = status;
+          existing.ipv6Region = region;
         } else {
-          serviceMap.set(serviceName, { ipv4: "未测试", ipv6: status });
+          serviceMap.set(serviceName, { ipv4: "未测试", ipv6: status, ipv6Region: region });
         }
       }
     }
@@ -62,7 +76,9 @@ export function parseStreamingTest(section: string, errors: ParseError[]): Strea
       services.push({
         name,
         ipv4Status: statuses.ipv4,
-        ipv6Status: statuses.ipv6
+        ipv4Region: statuses.ipv4Region,
+        ipv6Status: statuses.ipv6,
+        ipv6Region: statuses.ipv6Region
       });
     }
 

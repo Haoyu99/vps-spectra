@@ -24,12 +24,13 @@ export function generateStreamingTests(streamingTest: StreamingTest, options: Ma
 
   if (streamingTest.unlockTests.services.length > 0) {
     section += '### 📺 IPv4 解锁结果\n\n';
-    section += '| 流媒体平台 | 解锁状态 |\n';
-    section += '| --- | --- |\n';
+    section += '| 流媒体平台 | 解锁状态 | 解锁区域 |\n';
+    section += '| --- | --- | --- |\n';
 
     for (const service of streamingTest.unlockTests.services) {
       const ipv4Status = formatStreamingStatus(service.ipv4Status);
-      section += `| ${service.name} | ${ipv4Status} |\n`;
+      const ipv4Region = service.ipv4Region || '-';
+      section += `| ${service.name} | ${ipv4Status} | ${ipv4Region} |\n`;
     }
     section += '\n';
 
@@ -37,12 +38,13 @@ export function generateStreamingTests(streamingTest: StreamingTest, options: Ma
 
     if (hasIpv6Results) {
       section += '### 📱 IPv6 解锁结果\n\n';
-      section += '| 流媒体平台 | 解锁状态 |\n';
-      section += '| --- | --- |\n';
+      section += '| 流媒体平台 | 解锁状态 | 解锁区域 |\n';
+      section += '| --- | --- | --- |\n';
 
       for (const service of streamingTest.unlockTests.services) {
         const ipv6Status = formatStreamingStatus(service.ipv6Status);
-        section += `| ${service.name} | ${ipv6Status} |\n`;
+        const ipv6Region = service.ipv6Region || '-';
+        section += `| ${service.name} | ${ipv6Status} | ${ipv6Region} |\n`;
       }
       section += '\n';
     }

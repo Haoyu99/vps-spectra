@@ -117,7 +117,9 @@ export interface StreamingTest {
     services: Array<{
       name: string
       ipv4Status: string
+      ipv4Region?: string
       ipv6Status: string
+      ipv6Region?: string
     }>
     tiktokRegion?: string
   }
