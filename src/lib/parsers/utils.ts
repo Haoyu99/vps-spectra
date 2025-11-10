@@ -90,17 +90,17 @@ export function parseMetadata(input: string) {
  * 定义各个模块的分隔符常量
  */
 export const SECTION_MARKERS = {
-  BASIC_INFO_START: '---------------------基础信息查询--感谢所有开源项目---------------------',
-  CPU_TEST_START: '----------------------CPU测试--通过sysbench测试-------------------------',
-  MEMORY_TEST_START: '---------------------内存测试--感谢lemonbench开源-----------------------',
-  DISK_DD_TEST_START: '------------------磁盘dd读写测试--感谢lemonbench开源--------------------',
-  DISK_FIO_TEST_START: '---------------------磁盘fio读写测试--感谢yabs开源----------------------',
-  STREAMING_TEST_START: '------------流媒体解锁--基于oneclickvirt/CommonMediaTests开源-----------',
-  IP_QUALITY_TEST_START: '-------------IP质量检测--基于oneclickvirt/securityCheck使用-------------',
-  EMAIL_PORT_TEST_START: '-------------邮件端口检测--基于oneclickvirt/portchecker开源-------------',
-  NETWORK_RETURN_TEST_START: '-------------上游及三网回程--基于oneclickvirt/backtrace开源-------------',
-  ROUTE_TEST_START: '-----------------------回程路由--基于nexttrace开源----------------------',
-  SPEED_TEST_START: '--------------------自动更新测速节点列表--本脚本原创--------------------',
+  BASIC_INFO_START: '---------------------基础信息查询--感谢所有开源项目----------------------',
+  CPU_TEST_START: '------------------------CPU测试--通过sysbench测试-------------------------',
+  MEMORY_TEST_START: '--------------------内存测试--感谢lemonbench开源----------------------------',
+  DISK_DD_TEST_START: '--------------------磁盘dd读写测试--感谢lemonbench开源--------------------',
+  DISK_FIO_TEST_START: '----------------------磁盘fio读写测试--感谢yabs开源-----------------------',
+  STREAMING_TEST_START: '---------------流媒体解锁--感谢oneclickvirt/UnlockTests测试----------------',
+  IP_QUALITY_TEST_START: '-------------IP质量检测--基于oneclickvirt/securityCheck使用--------------',
+  EMAIL_PORT_TEST_START: '------------邮件端口检测--基于oneclickvirt/portchecker开源------------',
+  NETWORK_RETURN_TEST_START: '-------------上游及三网回程--基于oneclickvirt/backtrace开源--------------',
+  ROUTE_TEST_START: '----------------------回程路由--基于nexttrace开源-----------------------',
+  SPEED_TEST_START: '---------------------自动更新测速节点列表--本脚本原创----------------------',
   SCRIPT_END_MARKER: '------------------------------------------------------------------------'
 } as const
 

@@ -424,22 +424,20 @@ export function parseIpQualityTest(section: string, errors: ParseError[]): IpQua
  * @returns 解析后的邮件端口检测结果
  */
 export function parseEmailPortTest(section: string, errors: ParseError[]): EmailPortTest {
-  const lines = section.split('\n').filter(line => line.trim() !== '')
-  const platforms: EmailPortTest['platforms'] = []
+  const lines = section.split('\n').filter(line => line.trim() !== '' && !line.includes('oneclickvirt/portchecker'));
+  const platforms: EmailPortTest['platforms'] = [];
 
   try {
-    // 找到表头行
-    const headerIndex = lines.findIndex(line => 
+    const headerIndex = lines.findIndex(line =>
       line.includes("Platform") && line.includes("SMTP")
-    )
+    );
 
     if (headerIndex !== -1) {
-      // 处理每个平台行
       for (let i = headerIndex + 1; i < lines.length; i++) {
-        const line = lines[i]
-        if (!line.includes("✔") && !line.includes("✘")) break
+        const line = lines[i];
+        if (!line.includes("✔") && !line.includes("✘")) continue;
 
-        const parts = line.split(/\s+/).filter(part => part.trim() !== "")
+        const parts = line.split(/\s+/).filter(part => part.trim() !== "");
         if (parts.length >= 7) {
           platforms.push({
             name: parts[0],
@@ -449,19 +447,19 @@ export function parseEmailPortTest(section: string, errors: ParseError[]): Email
             pop3s: parts[4] === "✔",
             imap: parts[5] === "✔",
             imaps: parts[6] === "✔"
-          })
+          });
         }
       }
     }
 
-    return { platforms }
+    return { platforms };
   } catch (error) {
     errors.push({
       section: 'emailPortTest',
       message: '邮件端口检测结果解析失败',
       suggestion: '请检查邮件端口检测数据格式'
-    })
-    return { platforms: [] }
+    });
+    return { platforms: [] };
   }
 }
 

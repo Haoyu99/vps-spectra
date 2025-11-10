@@ -113,23 +113,13 @@ export interface DiskFioTest {
 
 // 流媒体解锁测试结果
 export interface StreamingTest {
-  commonMediaTests: {
-    ipv4: Array<{
-      service: string
-      status: string
-    }>
-    ipv6: Array<{
-      service: string
-      status: string
-    }>
-    tiktokRegion?: string
-  }
-  regionRestrictionCheck: {
+  unlockTests: {
     services: Array<{
       name: string
       ipv4Status: string
       ipv6Status: string
     }>
+    tiktokRegion?: string
   }
 }
 

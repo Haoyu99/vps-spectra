@@ -20,28 +20,28 @@ import {
  * @returns 解析后的CPU测试结果
  */
 export function parseCpuTest(section: string, errors: ParseError[]): CpuTest {
-  const lines = section.split('\n').filter(line => line.trim() !== '')
+  const lines = section.replace(/[\r]/g, '').split('\n').filter(line => line.trim() !== '');
   
-  let singleScore = 0
-  let multiScore = 0
-  let threadCount = 1
+  let singleScore = 0;
+  let multiScore = 0;
+  let threadCount = 1;
 
   try {
     for (const line of lines) {
-      const singleMatch = line.match(/1\s*线程测试.*?(\d+)\s+Scores/)
+      const singleMatch = line.match(/1\s*线程测试.*?(\d+)\s+Scores/);
       if (singleMatch) {
-        singleScore = parseInt(singleMatch[1])
-        continue
+        singleScore = parseInt(singleMatch[1]);
+        continue;
       }
 
-      const multiMatch = line.match(/(\d+)\s*线程测试.*?(\d+)\s+Scores/)
+      const multiMatch = line.match(/(\d+)\s*线程测试.*?(\d+)\s+Scores/);
       if (multiMatch && parseInt(multiMatch[1]) > 1) {
-        threadCount = parseInt(multiMatch[1])
-        multiScore = parseInt(multiMatch[2])
+        threadCount = parseInt(multiMatch[1]);
+        multiScore = parseInt(multiMatch[2]);
       }
     }
 
-    const efficiency = singleScore > 0 ? multiScore / (singleScore * threadCount) : 0
+    const efficiency = singleScore > 0 ? multiScore / (singleScore * threadCount) : 0;
 
     return {
       singleCore: {
@@ -55,14 +55,14 @@ export function parseCpuTest(section: string, errors: ParseError[]): CpuTest {
         efficiency: efficiency,
         efficiencyRating: evaluateCpuEfficiency(efficiency)
       }
-    }
+    };
   } catch (error) {
     errors.push({
       section: 'cpuTest',
       message: 'CPU测试结果解析失败',
       suggestion: '请检查CPU测试数据格式'
-    })
-    throw error
+    });
+    throw error;
   }
 }
 
@@ -73,22 +73,22 @@ export function parseCpuTest(section: string, errors: ParseError[]): CpuTest {
  * @returns 解析后的内存测试结果
  */
 export function parseMemoryTest(section: string, errors: ParseError[]): MemoryTest {
-  const lines = section.split('\n').filter(line => line.trim() !== '')
+  const lines = section.replace(/[\r]/g, '').split('\n').filter(line => line.trim() !== '');
   
-  let readSpeed = 0
-  let writeSpeed = 0
+  let readSpeed = 0;
+  let writeSpeed = 0;
 
   try {
     for (const line of lines) {
-      const readMatch = line.match(/单线程读测试.*?([0-9.]+)\s*MB\/s/)
+      const readMatch = line.match(/单线程读测试.*?([0-9.]+)\s*MB\/s/);
       if (readMatch) {
-        readSpeed = parseFloat(readMatch[1])
-        continue
+        readSpeed = parseFloat(readMatch[1]);
+        continue;
       }
 
-      const writeMatch = line.match(/单线程写测试.*?([0-9.]+)\s*MB\/s/)
+      const writeMatch = line.match(/单线程写测试.*?([0-9.]+)\s*MB\/s/);
       if (writeMatch) {
-        writeSpeed = parseFloat(writeMatch[1])
+        writeSpeed = parseFloat(writeMatch[1]);
       }
     }
 
@@ -102,14 +102,14 @@ export function parseMemoryTest(section: string, errors: ParseError[]): MemoryTe
         rating: evaluateMemoryWrite(writeSpeed)
       },
       overallRating: evaluateMemoryOverall(readSpeed, writeSpeed)
-    }
+    };
   } catch (error) {
     errors.push({
       section: 'memoryTest',
       message: '内存测试结果解析失败',
       suggestion: '请检查内存测试数据格式'
-    })
-    throw error
+    });
+    throw error;
   }
 }
 
@@ -120,34 +120,30 @@ export function parseMemoryTest(section: string, errors: ParseError[]): MemoryTe
  * @returns 解析后的磁盘DD测试结果
  */
 export function parseDiskDdTest(section: string, errors: ParseError[]): DiskDdTest {
-  const lines = section.split('\n').filter(line => line.trim() !== '')
-  const tests: DiskDdTest['tests'] = []
+  const lines = section.replace(/[\r]/g, '').split('\n').filter(line => line.trim() !== '');
+  const tests: DiskDdTest['tests'] = [];
 
   try {
     for (const line of lines) {
-      // 匹配包含Block的测试行，支持多种分隔符
       if (line.includes('Block') && (line.includes('MB/s') || line.includes('GB/s'))) {
-        // 提取操作名称
-        const operationMatch = line.match(/(.+?Block)/)
-        if (!operationMatch) continue
+        const operationMatch = line.match(/(.+?Block)/);
+        if (!operationMatch) continue;
         
-        const operation = operationMatch[1].trim()
+        const operation = operationMatch[1].trim();
         
-        // 使用更灵活的正则表达式匹配速度、IOPS和时间
-        const speedMatches = line.match(/([0-9.]+\s*[GM]?B\/s\s*\([^)]+\))/g)
+        const speedMatches = line.match(/([0-9.]+\s*[GM]?B\/s\s*\([^)]+\))/g);
         
         if (speedMatches && speedMatches.length >= 2) {
-          // 第一个是写入速度，第二个是读取速度
-          const writeInfo = speedMatches[0]
-          const readInfo = speedMatches[1]
+          const writeInfo = speedMatches[0];
+          const readInfo = speedMatches[1];
           
-          const writeSpeedMatch = writeInfo.match(/([0-9.]+\s*[GM]?B\/s)/)
-          const writeIOPSMatch = writeInfo.match(/\(([0-9]+)\s*IOPS/)
-          const writeTimeMatch = writeInfo.match(/([0-9.]+s)\)/)
+          const writeSpeedMatch = writeInfo.match(/([0-9.]+\s*[GM]?B\/s)/);
+          const writeIOPSMatch = writeInfo.match(/\(([0-9]+)\s*IOPS/);
+          const writeTimeMatch = writeInfo.match(/([0-9.]+s)\)/);
           
-          const readSpeedMatch = readInfo.match(/([0-9.]+\s*[GM]?B\/s)/)
-          const readIOPSMatch = readInfo.match(/\(([0-9]+)\s*IOPS/)
-          const readTimeMatch = readInfo.match(/([0-9.]+s)\)/)
+          const readSpeedMatch = readInfo.match(/([0-9.]+\s*[GM]?B\/s)/);
+          const readIOPSMatch = readInfo.match(/\(([0-9]+)\s*IOPS/);
+          const readTimeMatch = readInfo.match(/([0-9.]+s)\)/);
 
           tests.push({
             operation,
@@ -157,19 +153,19 @@ export function parseDiskDdTest(section: string, errors: ParseError[]): DiskDdTe
             readSpeed: readSpeedMatch ? readSpeedMatch[1] : undefined,
             readIOPS: readIOPSMatch ? readIOPSMatch[1] + ' IOPS' : undefined,
             readTime: readTimeMatch ? readTimeMatch[1] : undefined
-          })
+          });
         }
       }
     }
 
-    return { tests }
+    return { tests };
   } catch (error) {
     errors.push({
       section: 'diskDdTest',
       message: '磁盘DD测试结果解析失败',
       suggestion: '请检查磁盘DD测试数据格式'
-    })
-    return { tests: [] }
+    });
+    return { tests: [] };
   }
 }
 

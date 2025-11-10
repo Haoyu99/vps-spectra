@@ -97,7 +97,7 @@ export function evaluateIpAbuseDescription(description: string): RatingResult {
   const lowerDesc = description.toLowerCase()
   if (lowerDesc.includes('low') || lowerDesc.includes('very low')) {
     return createRating('excellent', '优秀')
-  } else if (lowerDesc.includes('medium')) {
+  } else if (lowerDesc.includes('medium') || lowerDesc.includes('elevated')) {
     return createRating('average', '一般')
   } else {
     return createRating('poor', '较高')

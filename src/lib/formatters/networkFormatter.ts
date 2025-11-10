@@ -240,10 +240,18 @@ function generateIpQualitySection(ipQualityTest: IpQualityTest, options: Markdow
   }
 
   // IPv6部分
-  section += '#### 🌍 IPv6 质量检测\n\n'
-  section += '##### 安全得分\n\n'
-  section += '| 检测指标 | 检测结果 | 评级 |\n'
-  section += '| --- | --- | --- |\n'
+  // Check if there are meaningful IPv6 results to display
+  const hasIpv6Results = ipQualityTest.ipv6 && ipQualityTest.ipv6.abuseScore && ipQualityTest.ipv6.abuseScore.sources.length > 0;
+
+  if (hasIpv6Results) {
+    section += '#### 🌍 IPv6 质量检测\n\n';
+    section += '##### 安全得分\n\n';
+    section += '| 检测指标 | 检测结果 | 评级 |\n';
+    section += '| --- | --- | --- |\n';
+
+    // ... (rest of the IPv6 formatting logic)
+  }
+
   
   if (ipQualityTest.ipv6.fraudScore) {
     const superscripts = ipQualityTest.ipv6.fraudScore.sources.map(s => `<sup>[${s}]</sup>`).join('')

@@ -13,56 +13,48 @@ import type { StreamingTest, ParseError } from '@/types'
  */
 export function parseStreamingTest(section: string, errors: ParseError[]): StreamingTest {
   try {
-    const ipv4Results: Array<{service: string, status: string}> = []
-    const ipv6Results: Array<{service: string, status: string}> = []
     const services: Array<{name: string, ipv4Status: string, ipv6Status: string}> = []
     
-    // 提取TikTok信息（支持【地区】和直接地区两种格式）
-    let tiktokRegion: string | undefined
-    const tiktokMatchBracket = section.match(/Tiktok Region:\s*【(.+?)】/)
-    const tiktokMatchDirect = section.match(/Tiktok Region:\s*(\S+)/)
-    
-    if (tiktokMatchBracket) {
-      tiktokRegion = tiktokMatchBracket[1]
-    } else if (tiktokMatchDirect) {
-      tiktokRegion = tiktokMatchDirect[1]
-    }
+    // 定位IPV4和IPV6的测试结果部分
+    const ipv4Match = section.match(/IPV4:\s*([\s\S]*?)(?=IPV6:|$)/);
+    const ipv6Match = section.match(/IPV6:\s*([\s\S]*)/);
 
-    // 解析RegionRestrictionCheck部分
-    const ipv4Section = section.substring(
-      section.indexOf("以下为IPV4网络测试"),
-      section.indexOf("以下为IPV6网络测试")
-    )
-    const ipv6Section = section.substring(section.indexOf("以下为IPV6网络测试"))
+    const serviceMap = new Map<string, {ipv4: string, ipv6: string}>();
 
-    // 提取服务名称和状态
-    const serviceRegex = /([^:\n]+):\s*([^\n]+)/g
-    let match
-
-    const serviceMap = new Map<string, {ipv4: string, ipv6: string}>()
-
-    // 解析IPv4部分
-    while ((match = serviceRegex.exec(ipv4Section)) !== null) {
-      const serviceName = match[1].trim()
-      const status = match[2].trim()
-      if (!serviceName.includes("Region") && !serviceName.includes("Forum")) {
-        serviceMap.set(serviceName, { ipv4: status, ipv6: "未测试" })
+    // 解析IPV4部分
+    if (ipv4Match && ipv4Match[1]) {
+      const ipv4Section = ipv4Match[1];
+      const serviceRegex = /^\s*([^\s].*?)\s{2,}(YES|NO|Banned|Unknown|Failed)[\s\S]*?$/gm;
+      let match;
+      while ((match = serviceRegex.exec(ipv4Section)) !== null) {
+        const serviceName = match[1].trim();
+        const status = match[2].trim();
+        serviceMap.set(serviceName, { ipv4: status, ipv6: "未测试" });
       }
     }
 
-    // 解析IPv6部分
-    serviceRegex.lastIndex = 0
-    while ((match = serviceRegex.exec(ipv6Section)) !== null) {
-      const serviceName = match[1].trim()
-      const status = match[2].trim()
-      if (!serviceName.includes("Region") && !serviceName.includes("Forum")) {
-        const existing = serviceMap.get(serviceName)
+    // 解析IPV6部分
+    if (ipv6Match && ipv6Match[1]) {
+      const ipv6Section = ipv6Match[1];
+      const serviceRegex = /^\s*([^\s].*?)\s{2,}(YES|NO|Banned|Unknown|Failed)[\s\S]*?$/gm;
+      let match;
+      while ((match = serviceRegex.exec(ipv6Section)) !== null) {
+        const serviceName = match[1].trim();
+        const status = match[2].trim();
+        const existing = serviceMap.get(serviceName);
         if (existing) {
-          existing.ipv6 = status
+          existing.ipv6 = status;
         } else {
-          serviceMap.set(serviceName, { ipv4: "未测试", ipv6: status })
+          serviceMap.set(serviceName, { ipv4: "未测试", ipv6: status });
         }
       }
+    }
+    
+    // 提取TikTok信息
+    let tiktokRegion: string | undefined
+    const tiktokMatch = section.match(/Tiktok Region:\s*【(.+?)】/)
+    if (tiktokMatch) {
+      tiktokRegion = tiktokMatch[1]
     }
 
     // 转换为数组格式
@@ -71,17 +63,13 @@ export function parseStreamingTest(section: string, errors: ParseError[]): Strea
         name,
         ipv4Status: statuses.ipv4,
         ipv6Status: statuses.ipv6
-      })
+      });
     }
 
     return {
-      commonMediaTests: {
-        ipv4: ipv4Results,
-        ipv6: ipv6Results,
+      unlockTests: {
+        services,
         tiktokRegion
-      },
-      regionRestrictionCheck: {
-        services
       }
     }
   } catch (error) {
@@ -91,8 +79,7 @@ export function parseStreamingTest(section: string, errors: ParseError[]): Strea
       suggestion: '请检查流媒体测试数据格式'
     })
     return {
-      commonMediaTests: { ipv4: [], ipv6: [] },
-      regionRestrictionCheck: { services: [] }
+      unlockTests: { services: [], tiktokRegion: undefined }
     }
   }
 }
